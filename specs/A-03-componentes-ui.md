@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 |---|---|
-| Estado | lista |
+| Estado | en revisión |
 | Línea | A (demo) |
 | Asignado a | Sonnet |
 | Revisa | Fable |

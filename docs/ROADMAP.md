@@ -337,7 +337,7 @@ Leyenda de estado: ⬜ por escribir · 📝 borrador · ✅ lista · 🔨 en con
 |---|---|---|---|---|
 | A-01 | Andamiaje frontend: Vite, TS, Tailwind, HashRouter, layout, lint | Sonnet | F-03, F-05 | ✅ |
 | A-02 | Capa `api/`: interfaz común + adaptador **mock** con datos semilla en localStorage | Sonnet | F-02, A-01 | 👀 |
-| A-03 | Componentes base del design system (`ui/`) | Sonnet | F-03, A-01 | ✅ |
+| A-03 | Componentes base del design system (`ui/`) | Sonnet | F-03, A-01 | 👀 |
 | A-04 | P1 Login + guardas de ruta + manejo de sesión | Sonnet | A-02, A-03 | ✅ |
 | A-05 | P3 Registro de acceso (entrada/salida por placa) | Sonnet | A-04 | ✅ |
 | A-06 | P4/P5 Clientes y motos | Sonnet | A-04 | ✅ |
