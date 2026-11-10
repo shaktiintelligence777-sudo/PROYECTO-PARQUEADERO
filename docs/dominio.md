@@ -1,13 +1,13 @@
 # Dominio y reglas de negocio · Parqueadero de motos
 
 > Entregable **F-01**. Fuente de verdad del negocio. El contrato (`contracts/openapi.yaml`) y las specs se derivan de este documento.
-> Estado: `v1.0` · Última actualización: 2026-11-10
+> Estado: `v1.1` · Última actualización: 2026-11-10
 
 ---
 
 ## 1. Decisiones cerradas
 
-Se adoptan las propuestas por defecto de `docs/ROADMAP.md` (sección 7). Quedan **pendientes de confirmación del dueño del proyecto**; si alguna cambia, Fable actualiza este documento y el contrato antes de que se toque código.
+Se adoptan las propuestas por defecto de `docs/ROADMAP.md` (sección 7). El dueño del proyecto **confirmó D-1 a D-12 el 2026-11-10**. Cambiar cualquiera exige que Fable actualice este documento y el contrato antes de que se toque código.
 
 | ID | Decisión adoptada | Consecuencia en el diseño |
 |---|---|---|
@@ -19,7 +19,7 @@ Se adoptan las propuestas por defecto de `docs/ROADMAP.md` (sección 7). Quedan 
 | D-6 | Moneda COP sin decimales; zona horaria `America/Bogota`. | Los montos son enteros. “Hoy” siempre se calcula en `America/Bogota`. |
 | D-7 | Una membresía por cliente cubre todas sus motos. | La membresía cuelga del cliente, no de la moto. |
 
-Decisiones adicionales tomadas por Fable al detallar el dominio (también sujetas a confirmación):
+Decisiones adicionales tomadas por Fable al detallar el dominio (también confirmadas):
 
 | ID | Decisión | Motivo |
 |---|---|---|

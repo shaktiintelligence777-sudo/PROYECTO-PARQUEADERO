@@ -432,7 +432,7 @@ Un módulo está hecho cuando:
 
 Fable debe cerrarlas en la fase 0, con confirmación del dueño del proyecto.
 
-> **Estado (2026-11-10):** se adoptaron las propuestas por defecto de D-1 a D-7 y se añadieron D-8 a D-12. Todas están registradas en [`docs/dominio.md`](dominio.md#1-decisiones-cerradas) y siguen **pendientes de confirmación** del dueño del proyecto.
+> **Estado (2026-11-10):** se adoptaron las propuestas por defecto de D-1 a D-7 y se añadieron D-8 a D-12. Todas están registradas en [`docs/dominio.md`](dominio.md#1-decisiones-cerradas) y fueron **confirmadas por el dueño del proyecto** ese mismo día.
 
 | ID | Pregunta | Propuesta por defecto |
 |---|---|---|

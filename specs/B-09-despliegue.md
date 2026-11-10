@@ -15,7 +15,7 @@ Tener el backend funcionando en internet con HTTPS, conectado a un PostgreSQL ge
 
 ## 2. Contexto
 
-- `docs/dominio.md` D-1 (Render + Neon, pendiente de confirmación del dueño).
+- `docs/dominio.md` D-1 (Render + Neon, confirmada por el dueño).
 - `docs/ROADMAP.md` sección 2.6.
 
 ## 3. Alcance
