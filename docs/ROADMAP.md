@@ -355,12 +355,12 @@ Leyenda de estado: ⬜ por escribir · 📝 borrador · ✅ lista · 🔨 en con
 | B-01 | Andamiaje backend: FastAPI, config, Docker, pytest, CI | Sonnet | F-05 | ✔️ |
 | B-02 | Esquema de BD completo + migraciones Alembic + semilla | **Opus** | F-01, B-01 | ✔️ |
 | B-03 | Autenticación: login, refresh rotativo, roles, rate limit, auditoría | **Opus** | B-02 | ✔️ |
-| B-04 | Accesos: entrada/salida, “dentro ahora”, historial | Sonnet | B-03 | ✅ |
-| B-05 | Clientes, motos y planes (CRUD) | Sonnet | B-03, B-04 | ✅ |
-| B-06 | Membresías y pagos: estados, extensión de vencimiento, reglas | **Opus** | B-05 | ✅ |
+| B-04 | Accesos: entrada/salida, “dentro ahora”, historial | Sonnet | B-03 | 👀 |
+| B-05 | Clientes, motos y planes (CRUD) | Sonnet | B-03, B-04 | 👀 |
+| B-06 | Membresías y pagos: estados, extensión de vencimiento, reglas | **Opus** | B-05 | 👀 |
 | B-07 | Notificaciones: programación, envío por email, job + cron de Actions | **Opus** | B-06 | ✅ |
 | B-08 | Dashboard y reportes (resumen, export CSV) | Sonnet | B-04, B-06 | ✅ |
-| B-09 | Despliegue: hosting backend + PostgreSQL gestionado + secretos | **Opus** | B-03 | ✅ |
+| B-09 | Despliegue: hosting backend + PostgreSQL gestionado + secretos | **Opus** | B-03 | 👀 |
 | B-10 | Usuarios y configuración (P9) — backend y pantalla | Sonnet | B-03, B-07, A-04 | ✅ |
 
 ### Convergencia (C)

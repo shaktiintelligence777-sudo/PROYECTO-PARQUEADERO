@@ -13,5 +13,6 @@ Aplicación web para un parqueadero de motos: membresías de clientes, notificac
 - [Contrato de la API](contracts/openapi.yaml): fuente de verdad de endpoints, esquemas y errores.
 - [Sistema de diseño](docs/ui/design-system.md): tokens y componentes base.
 - [Pantallas y flujos](docs/ui/pantallas.md): estructura, estados y textos de P1 a P9.
+- [Operación y despliegue](docs/operacion.md): Neon + Render, primer admin, migraciones, copias y secretos.
 - [Reglas para agentes constructores](CLAUDE.md).
 - Specs por módulo en [`specs/`](specs/).

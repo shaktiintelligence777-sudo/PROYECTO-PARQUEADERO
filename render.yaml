@@ -1,0 +1,28 @@
+# Blueprint de Render (B-09, D-1). Crea el servicio web de la API desde `backend/`.
+# Ningún secreto va aquí: las variables con `sync: false` se cargan en el panel de Render
+# al crear el Blueprint (ver docs/operacion.md).
+services:
+  - type: web
+    name: parqueadero-api
+    runtime: docker
+    plan: free
+    region: virginia
+    branch: main
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/v1/salud
+    autoDeploy: true
+    envVars:
+      - key: ENTORNO
+        value: produccion
+      - key: ZONA_HORARIA
+        value: America/Bogota
+      - key: CORS_ORIGENES
+        value: https://shaktiintelligence777-sudo.github.io
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRETO
+        sync: false
+      - key: SERVICE_TOKEN
+        sync: false

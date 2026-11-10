@@ -6,10 +6,10 @@ from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
-from sqlalchemy.ext.asyncio import create_async_engine
 
 from app.core.config import normalizar_database_url
 from app.db.modelos import Base
+from app.db.sesion import crear_motor, preparar_conexion
 
 config = context.config
 if config.config_file_name is not None:
@@ -23,6 +23,7 @@ class _AjustesBD(BaseSettings):
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
     database_url: str | None = Field(default=None, alias="DATABASE_URL")
+    entorno: str = Field(default="desarrollo", alias="ENTORNO")
 
 
 def _database_url() -> str:
@@ -35,7 +36,7 @@ def _database_url() -> str:
 
 def run_migrations_offline() -> None:
     context.configure(
-        url=_database_url(),
+        url=preparar_conexion(_database_url(), _AjustesBD().entorno)[0],
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
@@ -52,7 +53,8 @@ def _migrar(connection: Connection) -> None:
 
 
 async def run_migrations_online() -> None:
-    motor = create_async_engine(_database_url(), poolclass=pool.NullPool)
+    # Mismas reglas de TLS que la aplicación: en producción, cifrado y verificado (B-09).
+    motor = crear_motor(_database_url(), _AjustesBD().entorno, poolclass=pool.NullPool)
     async with motor.connect() as connection:
         await connection.run_sync(_migrar)
     await motor.dispose()
