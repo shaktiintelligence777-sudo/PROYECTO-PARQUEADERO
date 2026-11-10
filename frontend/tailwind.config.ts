@@ -27,6 +27,8 @@ export default {
         apoyo: ['14px', { lineHeight: '20px', fontWeight: '400' }],
         micro: ['12px', { lineHeight: '16px', fontWeight: '500' }],
       },
+      spacing: { 13: '3.25rem' }, // filas de Tabla (52 px)
+      maxWidth: { hoja: '30rem', contenido: '60rem' }, // Hoja en escritorio (480 px) y ancho de contenido (960 px)
       borderRadius: { control: '10px', tarjeta: '16px' },
       boxShadow: {
         tarjeta: '0 1px 2px rgb(21 26 35 / 0.06), 0 1px 3px rgb(21 26 35 / 0.10)',
