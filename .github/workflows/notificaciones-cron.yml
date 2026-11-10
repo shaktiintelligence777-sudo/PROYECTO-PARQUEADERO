@@ -1,0 +1,41 @@
+# B-07: ejecuta a diario el job de notificaciones de la API desplegada.
+# Secretos del repositorio (los crea el dueño): API_URL y SERVICE_TOKEN.
+name: Notificaciones diarias
+
+on:
+  schedule:
+    - cron: "0 13 * * *" # 13:00 UTC = 8:00 a. m. en Bogotá
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: notificaciones-cron
+  cancel-in-progress: false
+
+jobs:
+  ejecutar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Llamar al job de notificaciones
+        env:
+          API_URL: ${{ secrets.API_URL }}
+          SERVICE_TOKEN: ${{ secrets.SERVICE_TOKEN }}
+        run: |
+          if [ -z "$API_URL" ] || [ -z "$SERVICE_TOKEN" ]; then
+            echo "::error::Faltan los secretos API_URL o SERVICE_TOKEN del repositorio."
+            exit 1
+          fi
+          # El plan gratuito del hosting puede estar dormido: se reintenta.
+          codigo=$(curl --silent --show-error --output respuesta.json --write-out "%{http_code}" \
+            --retry 5 --retry-all-errors --retry-delay 10 --max-time 120 \
+            --request POST \
+            --header "Authorization: Bearer ${SERVICE_TOKEN}" \
+            "${API_URL%/}/api/v1/internal/jobs/notificaciones")
+          cat respuesta.json
+          echo
+          if [ "$codigo" != "200" ]; then
+            echo "::error::El job respondió HTTP ${codigo}."
+            exit 1
+          fi
