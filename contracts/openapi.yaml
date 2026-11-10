@@ -1217,7 +1217,7 @@ components:
               description: Texto en español apto para mostrar al usuario.
             detalles:
               type: array
-              description: Solo en `validacion`.
+              description: Presente en `validacion`. También en los conflictos `documento_duplicado`, `placa_duplicada`, `email_duplicado` y `nombre_duplicado`, con el campo que los causó.
               items:
                 type: object
                 required: [campo, mensaje]

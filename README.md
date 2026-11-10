@@ -12,5 +12,6 @@ Aplicación web para un parqueadero de motos: membresías de clientes, notificac
 - [Dominio y reglas de negocio](docs/dominio.md): glosario, reglas `RN-xx`, permisos, casos borde y decisiones.
 - [Contrato de la API](contracts/openapi.yaml): fuente de verdad de endpoints, esquemas y errores.
 - [Sistema de diseño](docs/ui/design-system.md): tokens y componentes base.
+- [Pantallas y flujos](docs/ui/pantallas.md): estructura, estados y textos de P1 a P9.
 - [Reglas para agentes constructores](CLAUDE.md).
 - Specs por módulo en [`specs/`](specs/).
