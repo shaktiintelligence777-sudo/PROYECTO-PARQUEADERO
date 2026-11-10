@@ -1,7 +1,7 @@
 name: CI frontend
 on:
   pull_request:
-    paths: ['frontend/**', '.github/workflows/ci.yml']
+    paths: ['frontend/**', 'contracts/**', '.github/workflows/ci.yml']
   push:
     branches: [main]
     paths: ['frontend/**']
@@ -14,6 +14,8 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: npm, cache-dependency-path: frontend/package-lock.json }
       - run: npm ci
+      - name: Los tipos generados coinciden con el contrato (A-02 CA-17)
+        run: npm run gen:api && git diff --exit-code src/api/tipos.ts
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test
