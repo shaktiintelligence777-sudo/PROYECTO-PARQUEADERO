@@ -335,7 +335,7 @@ Leyenda de estado: ⬜ por escribir · 📝 borrador · ✅ lista · 🔨 en con
 
 | ID | Módulo | Agente | Depende de | Estado |
 |---|---|---|---|---|
-| A-01 | Andamiaje frontend: Vite, TS, Tailwind, HashRouter, layout, lint | Sonnet | F-03, F-05 | ✅ |
+| A-01 | Andamiaje frontend: Vite, TS, Tailwind, HashRouter, layout, lint | Sonnet | F-03, F-05 | ✔️ |
 | A-02 | Capa `api/`: interfaz común + adaptador **mock** con datos semilla en localStorage | Sonnet | F-02, A-01 | ✅ |
 | A-03 | Componentes base del design system (`ui/`) | Sonnet | F-03, A-01 | ✅ |
 | A-04 | P1 Login + guardas de ruta + manejo de sesión | Sonnet | A-02, A-03 | ✅ |
@@ -352,9 +352,9 @@ Leyenda de estado: ⬜ por escribir · 📝 borrador · ✅ lista · 🔨 en con
 
 | ID | Módulo | Agente | Depende de | Estado |
 |---|---|---|---|---|
-| B-01 | Andamiaje backend: FastAPI, config, Docker, pytest, CI | Sonnet | F-05 | ✅ |
-| B-02 | Esquema de BD completo + migraciones Alembic + semilla | **Opus** | F-01, B-01 | ✅ |
-| B-03 | Autenticación: login, refresh rotativo, roles, rate limit, auditoría | **Opus** | B-02 | ✅ |
+| B-01 | Andamiaje backend: FastAPI, config, Docker, pytest, CI | Sonnet | F-05 | ✔️ |
+| B-02 | Esquema de BD completo + migraciones Alembic + semilla | **Opus** | F-01, B-01 | ✔️ |
+| B-03 | Autenticación: login, refresh rotativo, roles, rate limit, auditoría | **Opus** | B-02 | ✔️ |
 | B-04 | Accesos: entrada/salida, “dentro ahora”, historial | Sonnet | B-03 | ✅ |
 | B-05 | Clientes, motos y planes (CRUD) | Sonnet | B-03, B-04 | ✅ |
 | B-06 | Membresías y pagos: estados, extensión de vencimiento, reglas | **Opus** | B-05 | ✅ |

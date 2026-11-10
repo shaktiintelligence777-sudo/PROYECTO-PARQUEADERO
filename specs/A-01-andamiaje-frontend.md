@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 |---|---|
-| Estado | lista |
+| Estado | hecha |
 | Línea | A (demo) |
 | Asignado a | Sonnet |
 | Revisa | Opus |
