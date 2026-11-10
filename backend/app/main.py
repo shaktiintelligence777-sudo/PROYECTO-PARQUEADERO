@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import obtener_ajustes
 from app.core.errores import registrar_manejadores
+from app.modules.accesos.router import router as accesos_router
 from app.modules.auth.router import router as auth_router
 from app.modules.clientes.router import router as clientes_router
 from app.modules.motos.router import router as motos_router
@@ -56,6 +57,7 @@ def crear_app() -> FastAPI:
     api = APIRouter(prefix=PREFIJO_API)
     api.include_router(salud_router)
     api.include_router(auth_router)
+    api.include_router(accesos_router)
     api.include_router(clientes_router)
     api.include_router(motos_router)
     api.include_router(planes_router)
