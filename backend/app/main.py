@@ -9,7 +9,9 @@ from app.core.config import obtener_ajustes
 from app.core.errores import registrar_manejadores
 from app.modules.auth.router import router as auth_router
 from app.modules.clientes.router import router as clientes_router
+from app.modules.membresias.router import router as membresias_router
 from app.modules.motos.router import router as motos_router
+from app.modules.pagos.router import router as pagos_router
 from app.modules.planes.router import router as planes_router
 from app.modules.salud.router import VERSION
 from app.modules.salud.router import router as salud_router
@@ -59,6 +61,8 @@ def crear_app() -> FastAPI:
     api.include_router(clientes_router)
     api.include_router(motos_router)
     api.include_router(planes_router)
+    api.include_router(membresias_router)
+    api.include_router(pagos_router)
     app.include_router(api)
     return app
 
