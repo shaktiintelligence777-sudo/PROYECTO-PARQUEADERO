@@ -1,18 +1,45 @@
-"""Tipos de columna compartidos."""
+"""Tipos enumerados de PostgreSQL compartidos por los modelos."""
 
 from enum import StrEnum
 
 from sqlalchemy import Enum
 
 
-def enum_texto(enum_cls: type[StrEnum], nombre: str) -> Enum:
-    """Enum guardado como texto con CHECK (más fácil de migrar que un ENUM nativo de PostgreSQL)."""
-    return Enum(
-        enum_cls,
-        name=nombre,
-        native_enum=False,
-        create_constraint=True,
-        length=20,
-        values_callable=lambda e: [m.value for m in e],
-        validate_strings=True,
-    )
+class Rol(StrEnum):
+    ADMIN = "admin"
+    OPERADOR = "operador"
+
+
+class MetodoPago(StrEnum):
+    EFECTIVO = "efectivo"
+    TRANSFERENCIA = "transferencia"
+    OTRO = "otro"
+
+
+class TipoNotificacion(StrEnum):
+    RECORDATORIO = "recordatorio"
+    VENCIDA = "vencida"
+
+
+class CanalNotificacion(StrEnum):
+    EMAIL = "email"
+    WHATSAPP = "whatsapp"
+
+
+class EstadoNotificacion(StrEnum):
+    PENDIENTE = "pendiente"
+    ENVIADA = "enviada"
+    FALLIDA = "fallida"
+    CANCELADA = "cancelada"
+
+
+def enum_pg(enum_cls: type[StrEnum], nombre: str) -> Enum:
+    """ENUM nativo de PostgreSQL que guarda los valores (no los nombres) del enum de Python."""
+    return Enum(enum_cls, name=nombre, values_callable=lambda e: [m.value for m in e])
+
+
+ROL_USUARIO = enum_pg(Rol, "rol_usuario")
+METODO_PAGO = enum_pg(MetodoPago, "metodo_pago")
+TIPO_NOTIFICACION = enum_pg(TipoNotificacion, "tipo_notificacion")
+CANAL_NOTIFICACION = enum_pg(CanalNotificacion, "canal_notificacion")
+ESTADO_NOTIFICACION = enum_pg(EstadoNotificacion, "estado_notificacion")

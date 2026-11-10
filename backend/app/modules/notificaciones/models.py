@@ -1,61 +1,58 @@
 import uuid
 from datetime import date, datetime
-from enum import StrEnum
 
-from sqlalchemy import Date, DateTime, ForeignKey, Index, String, UniqueConstraint, text
+from sqlalchemy import (
+    CheckConstraint,
+    Date,
+    DateTime,
+    ForeignKey,
+    Integer,
+    Text,
+    UniqueConstraint,
+    func,
+    text,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.db.base import Base, TimestampMixin, UUIDPKMixin
-from app.db.tipos import enum_texto
+from app.db.base import Base, ConId
+from app.db.tipos import (
+    CANAL_NOTIFICACION,
+    ESTADO_NOTIFICACION,
+    TIPO_NOTIFICACION,
+    CanalNotificacion,
+    EstadoNotificacion,
+    TipoNotificacion,
+)
 
 
-class TipoNotificacion(StrEnum):
-    RECORDATORIO = "recordatorio"
-    VENCIDA = "vencida"
-
-
-class CanalNotificacion(StrEnum):
-    EMAIL = "email"
-    WHATSAPP = "whatsapp"
-
-
-class EstadoNotificacion(StrEnum):
-    PENDIENTE = "pendiente"
-    ENVIADA = "enviada"
-    FALLIDA = "fallida"
-
-
-class Notificacion(UUIDPKMixin, TimestampMixin, Base):
+class Notificacion(ConId, Base):
     __tablename__ = "notificaciones"
 
     membresia_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("membresias.id", ondelete="CASCADE"), nullable=False
+        ForeignKey("membresias.id", ondelete="RESTRICT"), nullable=False
     )
-    tipo: Mapped[TipoNotificacion] = mapped_column(
-        enum_texto(TipoNotificacion, "tipo_notificacion"), nullable=False
-    )
-    canal: Mapped[CanalNotificacion] = mapped_column(
-        enum_texto(CanalNotificacion, "canal_notificacion"), nullable=False
-    )
-    programada_para: Mapped[date] = mapped_column(Date, nullable=False)
+    tipo: Mapped[TipoNotificacion] = mapped_column(TIPO_NOTIFICACION, nullable=False)
+    canal: Mapped[CanalNotificacion] = mapped_column(CANAL_NOTIFICACION, nullable=False)
+    programada_para: Mapped[date] = mapped_column(Date, nullable=False, index=True)
     estado: Mapped[EstadoNotificacion] = mapped_column(
-        enum_texto(EstadoNotificacion, "estado_notificacion"),
+        ESTADO_NOTIFICACION,
         nullable=False,
         default=EstadoNotificacion.PENDIENTE,
-        server_default=EstadoNotificacion.PENDIENTE.value,
+        server_default=text("'pendiente'"),
     )
-    intentos: Mapped[int] = mapped_column(nullable=False, default=0, server_default=text("0"))
     enviada_en: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    ultimo_error: Mapped[str | None] = mapped_column(String(500))
+    intentos: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, server_default=text("0")
+    )
+    error: Mapped[str | None] = mapped_column(Text)
+    creado_en: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
 
     __table_args__ = (
-        # Idempotencia del job diario: no se programa dos veces el mismo aviso.
+        CheckConstraint("intentos BETWEEN 0 AND 3", name="intentos_rango"),
+        # RN-61: idempotencia del job.
         UniqueConstraint(
-            "membresia_id", "tipo", "canal", "programada_para", name="uq_notificaciones_aviso"
-        ),
-        Index(
-            "ix_notificaciones_pendientes",
-            "programada_para",
-            postgresql_where=text("estado = 'pendiente'"),
+            "membresia_id", "tipo", "programada_para", "canal", name="uq_notificaciones_aviso"
         ),
     )

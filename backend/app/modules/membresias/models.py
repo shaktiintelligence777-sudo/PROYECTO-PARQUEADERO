@@ -1,50 +1,45 @@
 import uuid
-from datetime import date
-from enum import StrEnum
+from datetime import date, datetime
 
-from sqlalchemy import CheckConstraint, Date, ForeignKey, Index, text
+from sqlalchemy import CheckConstraint, Date, DateTime, ForeignKey, Index, Text, text
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.db.base import Base, TimestampMixin, UUIDPKMixin
-from app.db.tipos import enum_texto
+from app.db.base import Base, ConFechas, ConId
 
 
-class EstadoMembresia(StrEnum):
-    ACTIVA = "activa"
-    POR_VENCER = "por_vencer"
-    VENCIDA = "vencida"
-    CANCELADA = "cancelada"
-
-
-class Membresia(UUIDPKMixin, TimestampMixin, Base):
-    """Una membresía por cliente cubre todas sus motos (D-7)."""
+class Membresia(ConId, ConFechas, Base):
+    """Una membresía por cliente cubre todas sus motos (D-7). El estado no se guarda: se
+    calcula con `fecha_vencimiento` y `cancelada_en` (D-8, RN-32)."""
 
     __tablename__ = "membresias"
 
     cliente_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("clientes.id", ondelete="RESTRICT"), nullable=False, index=True
+        ForeignKey("clientes.id", ondelete="RESTRICT"), nullable=False
     )
     plan_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("planes.id", ondelete="RESTRICT"), nullable=False, index=True
+        ForeignKey("planes.id", ondelete="RESTRICT"), nullable=False
     )
     fecha_inicio: Mapped[date] = mapped_column(Date, nullable=False)
-    # Último día cubierto (inclusive).
-    fecha_vencimiento: Mapped[date] = mapped_column(Date, nullable=False)
-    estado: Mapped[EstadoMembresia] = mapped_column(
-        enum_texto(EstadoMembresia, "estado_membresia"),
-        nullable=False,
-        default=EstadoMembresia.ACTIVA,
-        server_default=EstadoMembresia.ACTIVA.value,
+    fecha_vencimiento: Mapped[date] = mapped_column(Date, nullable=False, index=True)
+    cancelada_en: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    cancelada_por: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("usuarios.id", ondelete="RESTRICT")
     )
+    motivo_cancelacion: Mapped[str | None] = mapped_column(Text)
 
     __table_args__ = (
         CheckConstraint("fecha_vencimiento >= fecha_inicio", name="fechas_ordenadas"),
-        # Un cliente tiene como máximo una membresía no cancelada; se renueva con pagos.
+        CheckConstraint(
+            "(cancelada_en IS NULL AND cancelada_por IS NULL AND motivo_cancelacion IS NULL)"
+            " OR (cancelada_en IS NOT NULL AND cancelada_por IS NOT NULL"
+            " AND motivo_cancelacion IS NOT NULL)",
+            name="cancelacion_completa",
+        ),
+        # RN-30: como máximo una membresía no cancelada por cliente.
         Index(
-            "uq_membresias_cliente_vigente",
+            "uq_membresias_cliente_no_cancelada",
             "cliente_id",
             unique=True,
-            postgresql_where=text("estado <> 'cancelada'"),
+            postgresql_where=text("cancelada_en IS NULL"),
         ),
-        Index("ix_membresias_vencimiento", "fecha_vencimiento"),
     )

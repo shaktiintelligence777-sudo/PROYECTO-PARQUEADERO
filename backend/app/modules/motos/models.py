@@ -1,32 +1,26 @@
 import uuid
 
-from sqlalchemy import CheckConstraint, ForeignKey, Index, String, text
+from sqlalchemy import Boolean, CheckConstraint, ForeignKey, Text, text
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.db.base import Base, SoftDeleteMixin, TimestampMixin, UUIDPKMixin
+from app.db.base import Base, ConFechas, ConId
 
 
-class Moto(UUIDPKMixin, TimestampMixin, SoftDeleteMixin, Base):
+class Moto(ConId, ConFechas, Base):
     __tablename__ = "motos"
 
     cliente_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("clientes.id", ondelete="RESTRICT"), nullable=False, index=True
     )
-    # Se guarda normalizada: mayúsculas, sin espacios ni guiones (p. ej. "ABC12D").
-    placa: Mapped[str] = mapped_column(String(10), nullable=False)
-    marca: Mapped[str | None] = mapped_column(String(60))
-    color: Mapped[str | None] = mapped_column(String(40))
-
-    __table_args__ = (
-        CheckConstraint("placa ~ '^[A-Z0-9]{4,10}$'", name="placa_normalizada"),
-        Index(
-            "uq_motos_placa_vigente",
-            "placa",
-            unique=True,
-            postgresql_where=text("eliminado_en IS NULL"),
-        ),
+    placa: Mapped[str] = mapped_column(Text, nullable=False, unique=True)
+    marca: Mapped[str | None] = mapped_column(Text)
+    color: Mapped[str | None] = mapped_column(Text)
+    activo: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default=text("true")
     )
 
-
-def normalizar_placa(placa: str) -> str:
-    return "".join(c for c in placa.upper() if c.isalnum())
+    __table_args__ = (
+        CheckConstraint("placa ~ '^[A-Z0-9]{4,7}$'", name="placa_formato"),
+        CheckConstraint("char_length(marca) <= 40", name="marca_longitud"),
+        CheckConstraint("char_length(color) <= 30", name="color_longitud"),
+    )

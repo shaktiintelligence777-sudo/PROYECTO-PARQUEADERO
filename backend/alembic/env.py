@@ -1,12 +1,15 @@
+import asyncio
 from logging.config import fileConfig
 
 from alembic import context
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from sqlalchemy import create_engine, pool
+from sqlalchemy import pool
+from sqlalchemy.engine import Connection
+from sqlalchemy.ext.asyncio import create_async_engine
 
 from app.core.config import normalizar_database_url
-from app.db.models import Base
+from app.db.modelos import Base
 
 config = context.config
 if config.config_file_name is not None:
@@ -15,8 +18,8 @@ if config.config_file_name is not None:
 target_metadata = Base.metadata
 
 
-class _DBSettings(BaseSettings):
-    """Solo lo que necesitan las migraciones (no exige JWT_SECRET ni el resto)."""
+class _AjustesBD(BaseSettings):
+    """Solo lo que necesitan las migraciones (no exige JWT_SECRETO ni el resto)."""
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
     database_url: str | None = Field(default=None, alias="DATABASE_URL")
@@ -24,7 +27,7 @@ class _DBSettings(BaseSettings):
 
 def _database_url() -> str:
     # La URL puede venir por config (lo usan las pruebas), por variable de entorno o por .env.
-    url = config.get_main_option("sqlalchemy.url") or _DBSettings().database_url
+    url = config.get_main_option("sqlalchemy.url") or _AjustesBD().database_url
     if not url:
         raise RuntimeError("Define DATABASE_URL para ejecutar migraciones")
     return normalizar_database_url(url)
@@ -42,15 +45,20 @@ def run_migrations_offline() -> None:
         context.run_migrations()
 
 
-def run_migrations_online() -> None:
-    connectable = create_engine(_database_url(), poolclass=pool.NullPool)
-    with connectable.connect() as connection:
-        context.configure(connection=connection, target_metadata=target_metadata, compare_type=True)
-        with context.begin_transaction():
-            context.run_migrations()
+def _migrar(connection: Connection) -> None:
+    context.configure(connection=connection, target_metadata=target_metadata, compare_type=True)
+    with context.begin_transaction():
+        context.run_migrations()
+
+
+async def run_migrations_online() -> None:
+    motor = create_async_engine(_database_url(), poolclass=pool.NullPool)
+    async with motor.connect() as connection:
+        await connection.run_sync(_migrar)
+    await motor.dispose()
 
 
 if context.is_offline_mode():
     run_migrations_offline()
 else:
-    run_migrations_online()
+    asyncio.run(run_migrations_online())

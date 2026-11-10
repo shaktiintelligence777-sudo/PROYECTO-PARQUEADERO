@@ -1,102 +1,91 @@
 # Backend · API del parqueadero
 
-FastAPI + SQLAlchemy 2 + Alembic + PostgreSQL 16. Ver la arquitectura en [`docs/ROADMAP.md`](../docs/ROADMAP.md).
+FastAPI + SQLAlchemy 2 (asíncrono, `asyncpg`) + Alembic + PostgreSQL 16. Implementa las specs
+`B-01`, `B-02` y `B-03` contra `contracts/openapi.yaml` y `docs/dominio.md`.
 
 ## Puesta en marcha local
 
 ```bash
+docker compose up -d db              # desde la raíz: PostgreSQL 16 con las bases parqueadero y parqueadero_test
 cd backend
 python3.12 -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
-cp .env.example .env            # y completa JWT_SECRET y SEED_ADMIN_PASSWORD
-
-docker compose up -d db         # o usa un PostgreSQL propio y ajusta DATABASE_URL
-alembic upgrade head            # crea el esquema
-python -m app.db.seed --demo    # administrador inicial + datos ficticios
-uvicorn app.main:app --reload   # http://localhost:8000/docs
+cp .env.example .env                 # y completa JWT_SECRETO y SERVICE_TOKEN
+alembic upgrade head                 # crea el esquema
+python -m app.db.semilla             # datos ficticios (demo@parqueadero.app / demo1234)
+uvicorn app.main:app --reload        # http://localhost:8000/docs
 ```
 
-## Pruebas
+`python -m app.db.semilla --reiniciar` vacía las tablas y vuelve a sembrar. La semilla se niega
+a correr con `ENTORNO=produccion`.
 
-Las pruebas necesitan un PostgreSQL (no SQLite: usan índices parciales, JSONB y triggers).
-Por defecto usan `postgresql+psycopg://postgres@127.0.0.1:5432/parqueadero_test`; cambia la
-URL con `TEST_DATABASE_URL`. Cada ejecución reconstruye el esquema con las migraciones reales.
+## Pruebas y chequeos
 
 ```bash
-createdb parqueadero_test
-pytest
+pytest                               # contra PostgreSQL real (TEST_DATABASE_URL)
 ruff check . && ruff format --check .
-alembic check                   # falla si un modelo cambió sin migración
+mypy app
 ```
+
+Por defecto las pruebas usan `postgresql+asyncpg://postgres@127.0.0.1:5432/parqueadero_test`.
+Cada ejecución reconstruye el esquema con las migraciones reales y verifica `alembic check`.
+Cada prueba corre dentro de una transacción que se revierte. Los nombres de las pruebas citan el
+criterio de aceptación (`test_ca4_...`).
 
 ## Estructura
 
 ```
 app/
-├── main.py                 # create_app(): CORS, cabeceras de seguridad, /api/v1
-├── core/                   # config (variables de entorno), security (Argon2id, JWT), deps
-├── db/                     # Base y mixins, sesión, registro de modelos, seed
-└── modules/<modulo>/       # models.py · schemas.py · service.py · router.py
-alembic/versions/           # migraciones versionadas
-tests/
+├── main.py                  # crear_app(): CORS, cabeceras de seguridad, manejadores, /api/v1
+├── core/
+│   ├── config.py            # Ajustes (variables de entorno)
+│   ├── errores.py           # ErrorApi y manejadores → {"error": {codigo, mensaje, detalles}}
+│   ├── reloj.py             # ahora() y hoy() (America/Bogota); las pruebas lo fijan
+│   ├── seguridad.py         # Argon2id, JWT, refresh tokens
+│   ├── dependencias.py      # usuario_actual, requiere_rol, requiere_token_servicio, ip_cliente
+│   ├── auditoria.py         # registrar_auditoria (sanea claves sensibles)
+│   └── placas.py            # normalizar_placa (RN-01)
+├── db/                      # Base y mixins, sesión, tipos ENUM, registro de modelos, semilla
+└── modules/<modulo>/        # models.py · schemas.py · service.py · router.py
+alembic/versions/            # 0001: esquema inicial
+tests/                       # B-01 y B-02 en la raíz, B-03 en tests/auth/
 ```
 
-## Autenticación (B-03)
-
-| Endpoint | Cuerpo | Respuesta |
-|---|---|---|
-| `POST /api/v1/auth/login` | `{email, password}` | `200 {access_token, refresh_token, token_type, expires_in, usuario}` · `401` · `429` con `Retry-After` |
-| `POST /api/v1/auth/refresh` | `{refresh_token}` | `200` igual que login (nuevo par de tokens) · `401` |
-| `POST /api/v1/auth/logout` | `{refresh_token}` | `204` (idempotente) |
-| `GET /api/v1/auth/me` | — (`Authorization: Bearer <access>`) | `200 usuario` · `401` |
-
-- Contraseñas con **Argon2id**; se re-hashean solas si cambian los parámetros.
-- **Access token**: JWT HS256 de 15 min con `iss`, `aud`, `typ=access`. El rol se valida
-  contra la BD en cada petición, así que desactivar un usuario o cambiarle el rol es inmediato.
-- **Refresh token**: opaco, 14 días, **rotativo**. En la BD solo se guarda su SHA-256. Si se
-  presenta un refresh ya usado, se revoca toda la sesión (detección de robo). El frontend debe
-  serializar las llamadas a `/auth/refresh` (no lanzar dos a la vez con el mismo token).
-- **Límite de intentos**: 5 fallos por email o 20 por IP en 5 min → `429`. Configurable.
-- Errores de login genéricos: no revelan si el email existe; el tiempo de respuesta tampoco.
-- Toda sesión (login, fallo, logout, reutilización de refresh) queda en `auditoria`.
-
-Dependencias para los demás módulos (en `app/core/deps.py`):
+## Para los módulos siguientes
 
 ```python
-from app.core.deps import get_usuario_actual, requiere_rol, requiere_token_servicio
-from app.modules.usuarios.models import Rol
+from app.core.dependencias import requiere_rol, requiere_token_servicio, usuario_actual
+from app.core.errores import ErrorApi
+from app.core.auditoria import registrar_auditoria
+from app.core import reloj
 
-
-@router.get("/usuarios")
-def listar(admin: Usuario = Depends(requiere_rol(Rol.ADMIN))): ...
-
-
-@router.post("/internal/jobs/notificaciones", dependencies=[Depends(requiere_token_servicio)])
-def job(): ...
+@router.post("/planes", dependencies=[Depends(requiere_rol("admin"))])
+async def crear_plan(...):
+    ...
+    raise ErrorApi("nombre_duplicado", "Ya existe un plan con ese nombre.", 409)
 ```
 
-Para auditar una escritura, llama a `app.modules.auditoria.service.registrar(db, ...)` antes del
-`commit()`, en la misma transacción.
+- Toda escritura llama a `registrar_auditoria(...)` antes del `commit()`, en la misma transacción.
+- “Hoy” y “ahora” solo desde `app.core.reloj`.
+- Fixtures disponibles en `tests/conftest.py`: `sesion`, `cliente` (`httpx.AsyncClient` con base
+  `/api/v1`), `reloj_fijo`, `crear_usuario`, `usuario_admin`, `usuario_operador`,
+  `cabeceras_admin`, `cabeceras_operador`.
 
-## Esquema de datos (B-02)
+## Seguridad (resumen)
 
-Tablas: `usuarios`, `clientes`, `motos`, `planes`, `membresias`, `pagos`, `estancias`,
-`notificaciones`, `auditoria`, `refresh_tokens`, `intentos_login`.
-
-Reglas que garantiza la propia base de datos:
-
-- Una moto tiene como máximo **una estancia abierta** (índice único parcial `salida_en IS NULL`),
-  y una salida siempre tiene operador.
-- Placa normalizada (`^[A-Z0-9]{4,10}$`) y única entre motos no eliminadas; documento de
-  cliente único entre clientes no eliminados (borrado lógico con `eliminado_en`).
-- Un cliente tiene como máximo **una membresía no cancelada** (se renueva con pagos, D-7).
-- Montos y precios en **COP enteros** (D-6); `monto > 0`, `precio >= 0`, fechas ordenadas.
-- Notificaciones únicas por `(membresia, tipo, canal, fecha)`, para que el job sea idempotente.
-- `auditoria` es de solo inserción (un trigger bloquea `UPDATE` y `DELETE`).
-- Emails de usuario únicos sin distinguir mayúsculas.
+- Contraseñas con Argon2id; se re-hashean solas si cambian los parámetros.
+- JWT HS256 de 15 min con algoritmo fijo (rechaza `alg: none`). El rol y el estado `activo` se
+  leen de la base en cada petición.
+- Refresh opaco de 30 días, de un solo uso, guardado como SHA-256. Reutilizar uno ya usado
+  revoca todas las sesiones del usuario (CB-14). La rotación bloquea la fila (`FOR UPDATE`):
+  dos refresh simultáneos con el mismo token → uno gana y el otro cuenta como reutilización, así
+  que el frontend debe serializar sus llamadas a `/auth/refresh`.
+- Límite de intentos en base de datos: 5 fallos por email (desde su último acierto) o 20 por IP
+  en 15 minutos → `429` con `Retry-After`.
+- La tabla `auditoria` es de solo inserción (un trigger bloquea UPDATE y DELETE).
 
 ## Despliegue
 
-La imagen (`Dockerfile`) aplica `alembic upgrade head` al arrancar y sirve en `$PORT` con
-`--proxy-headers`. Variables obligatorias: `DATABASE_URL`, `JWT_SECRET`, `CORS_ORIGINS`
-(dominio de GitHub Pages) y `ENTORNO=produccion`. En producción `/docs` está desactivado.
+La imagen aplica `alembic upgrade head` al arrancar y escucha en `$PORT`. Variables
+obligatorias: `DATABASE_URL`, `JWT_SECRETO`, `SERVICE_TOKEN`, `CORS_ORIGENES` y
+`ENTORNO=produccion` (que además desactiva `/docs` y `/openapi.json`).

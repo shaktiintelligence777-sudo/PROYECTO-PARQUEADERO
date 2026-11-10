@@ -1,15 +1,18 @@
-"""Lógica de autenticación: login con límite de intentos, refresh rotativo y logout."""
+"""Autenticación: login con límite de intentos, refresh rotativo, logout y cambio de contraseña."""
 
 import math
 import uuid
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 
-from sqlalchemy import func, select, update
-from sqlalchemy.orm import Session
+from sqlalchemy import ColumnElement, func, select, update
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.config import get_settings
-from app.core.security import (
+from app.core import reloj
+from app.core.auditoria import registrar_auditoria
+from app.core.config import obtener_ajustes
+from app.core.errores import ErrorApi
+from app.core.seguridad import (
     crear_access_token,
     generar_refresh_token,
     hash_password,
@@ -17,105 +20,87 @@ from app.core.security import (
     necesita_rehash,
     verificar_password,
 )
-from app.modules.auditoria.service import registrar
-from app.modules.auth.models import IntentoLogin, RefreshToken
-from app.modules.usuarios.models import Usuario
-
-
-class CredencialesInvalidas(Exception):
-    pass
-
-
-class DemasiadosIntentos(Exception):
-    def __init__(self, reintentar_en: int) -> None:
-        super().__init__("Demasiados intentos")
-        self.reintentar_en = reintentar_en
-
-
-class RefreshInvalido(Exception):
-    pass
+from app.modules.auth.models import IntentoLogin, RefreshToken, Usuario
 
 
 @dataclass(frozen=True)
-class Sesion:
+class SesionEmitida:
     usuario: Usuario
     access_token: str
     refresh_token: str
     expires_in: int
 
 
-def normalizar_email(email: str) -> str:
-    return email.strip().lower()
+def _token_invalido() -> ErrorApi:
+    return ErrorApi("token_invalido", status=401)
 
 
-def _ahora() -> datetime:
-    return datetime.now(UTC)
+# --- Límite de intentos (RN-75) -----------------------------------------------------------
 
 
-# --- Límite de intentos -------------------------------------------------------------------
-
-
-def _segundos_bloqueo(db: Session, columna, valor: str, maximo: int, ventana: int) -> int:
-    """Si hay `maximo` fallos o más dentro de la ventana, devuelve los segundos que faltan para
-    que el más antiguo de ellos salga de la ventana; si no, 0."""
-    desde = _ahora() - timedelta(seconds=ventana)
-    fallos = (
+async def _segundos_bloqueo(
+    sesion: AsyncSession, filtro: ColumnElement[bool], maximo: int, ventana: timedelta
+) -> int:
+    """Si hay `maximo` fallos o más en la ventana, segundos hasta que el más antiguo de los
+    últimos `maximo` salga de ella; si no, 0."""
+    ahora = reloj.ahora()
+    ultimos = (
         select(IntentoLogin.creado_en)
-        .where(columna == valor, IntentoLogin.exitoso.is_(False), IntentoLogin.creado_en > desde)
+        .where(filtro, IntentoLogin.exitoso.is_(False), IntentoLogin.creado_en > ahora - ventana)
         .order_by(IntentoLogin.creado_en.desc())
         .limit(maximo)
         .subquery()
     )
-    total, mas_antiguo = db.execute(select(func.count(), func.min(fallos.c.creado_en))).one()
-    if total < maximo:
+    fila = (await sesion.execute(select(func.count(), func.min(ultimos.c.creado_en)))).one()
+    total: int = fila[0]
+    mas_antiguo: datetime | None = fila[1]
+    if total < maximo or mas_antiguo is None:
         return 0
-    restante = (mas_antiguo + timedelta(seconds=ventana) - _ahora()).total_seconds()
-    return max(1, math.ceil(restante))
+    return max(1, math.ceil((mas_antiguo + ventana - ahora).total_seconds()))
 
 
-def _verificar_limite(db: Session, email: str, ip: str | None) -> None:
-    s = get_settings()
-    espera = _segundos_bloqueo(
-        db, IntentoLogin.email, email, s.login_max_intentos_email, s.login_ventana_segundos
+async def _verificar_limite(sesion: AsyncSession, email: str, ip: str) -> None:
+    ajustes = obtener_ajustes()
+    ventana = timedelta(minutes=ajustes.login_ventana_minutos)
+
+    # Para el email solo cuentan los fallos posteriores a su último acierto.
+    ultimo_acierto = (
+        select(func.max(IntentoLogin.creado_en))
+        .where(IntentoLogin.email == email, IntentoLogin.exitoso.is_(True))
+        .scalar_subquery()
     )
-    if ip:
-        espera = max(
-            espera,
-            _segundos_bloqueo(
-                db, IntentoLogin.ip, ip, s.login_max_intentos_ip, s.login_ventana_segundos
-            ),
-        )
+    filtro_email = (IntentoLogin.email == email) & (
+        (ultimo_acierto.is_(None)) | (IntentoLogin.creado_en > ultimo_acierto)
+    )
+    espera = max(
+        await _segundos_bloqueo(sesion, filtro_email, ajustes.login_max_fallos_email, ventana),
+        await _segundos_bloqueo(
+            sesion, IntentoLogin.ip == ip, ajustes.login_max_fallos_ip, ventana
+        ),
+    )
     if espera:
-        raise DemasiadosIntentos(espera)
+        raise ErrorApi("demasiados_intentos", status=429, cabeceras={"Retry-After": str(espera)})
 
 
-# --- Emisión de tokens ----------------------------------------------------------------------
+# --- Tokens -------------------------------------------------------------------------------
 
 
-def _emitir_refresh(
-    db: Session,
-    usuario: Usuario,
-    familia_id: uuid.UUID,
-    ip: str | None,
-    user_agent: str | None,
-) -> tuple[RefreshToken, str]:
+def _nuevo_refresh(usuario_id: uuid.UUID, familia_id: uuid.UUID) -> tuple[RefreshToken, str]:
     token = generar_refresh_token()
+    ahora = reloj.ahora()
     fila = RefreshToken(
-        id=uuid.uuid4(),
-        usuario_id=usuario.id,
+        usuario_id=usuario_id,
         familia_id=familia_id,
         token_hash=hash_token(token),
-        expira_en=_ahora() + timedelta(days=get_settings().refresh_token_dias),
-        ip=ip,
-        user_agent=(user_agent or "")[:255] or None,
+        expira_en=ahora + timedelta(days=obtener_ajustes().refresh_dias),
+        creado_en=ahora,
     )
-    db.add(fila)
     return fila, token
 
 
-def _sesion(usuario: Usuario, refresh_token: str) -> Sesion:
+def _emitir(usuario: Usuario, refresh_token: str) -> SesionEmitida:
     acceso = crear_access_token(usuario.id, usuario.rol.value)
-    return Sesion(
+    return SesionEmitida(
         usuario=usuario,
         access_token=acceso.token,
         refresh_token=refresh_token,
@@ -123,101 +108,130 @@ def _sesion(usuario: Usuario, refresh_token: str) -> Sesion:
     )
 
 
-def _revocar_familia(db: Session, familia_id: uuid.UUID) -> None:
-    db.execute(
+async def revocar_todas_las_sesiones(sesion: AsyncSession, usuario_id: uuid.UUID) -> None:
+    await sesion.execute(
         update(RefreshToken)
-        .where(RefreshToken.familia_id == familia_id, RefreshToken.revocado_en.is_(None))
-        .values(revocado_en=_ahora())
+        .where(RefreshToken.usuario_id == usuario_id, RefreshToken.revocado_en.is_(None))
+        .values(revocado_en=reloj.ahora())
     )
 
 
-# --- Casos de uso ---------------------------------------------------------------------------
+# --- Casos de uso -------------------------------------------------------------------------
 
 
-def login(db: Session, email: str, password: str, ip: str | None, user_agent: str | None) -> Sesion:
-    email = normalizar_email(email)
-    _verificar_limite(db, email, ip)
+async def login(sesion: AsyncSession, email: str, password: str, ip: str) -> SesionEmitida:
+    email = email.strip().lower()
+    await _verificar_limite(sesion, email, ip)
 
-    usuario = db.scalar(select(Usuario).where(func.lower(Usuario.email) == email))
-    valido = verificar_password(usuario.password_hash if usuario else None, password)
+    usuario = await sesion.scalar(select(Usuario).where(func.lower(Usuario.email) == email))
+    valida = verificar_password(usuario.password_hash if usuario else None, password)
 
-    if usuario is None or not valido or not usuario.activo:
-        db.add(IntentoLogin(email=email, ip=ip, exitoso=False))
-        registrar(
-            db,
-            accion="login_fallido",
+    if usuario is None or not valida or not usuario.activo:
+        sesion.add(IntentoLogin(email=email, ip=ip, exitoso=False, creado_en=reloj.ahora()))
+        await registrar_auditoria(
+            sesion,
+            usuario_id=usuario.id if usuario else None,
+            accion="auth.login_fallido",
             entidad="usuario",
             entidad_id=usuario.id if usuario else None,
-            usuario_id=usuario.id if usuario else None,
-            datos={"email": email, "motivo": "inactivo" if usuario and valido else "credenciales"},
+            datos={"email": email},
             ip=ip,
         )
-        db.commit()
-        raise CredencialesInvalidas()
+        await sesion.commit()
+        raise ErrorApi("credenciales_invalidas", status=401)
 
     if necesita_rehash(usuario.password_hash):
         usuario.password_hash = hash_password(password)
 
-    db.add(IntentoLogin(email=email, ip=ip, exitoso=True))
-    _, token = _emitir_refresh(db, usuario, uuid.uuid4(), ip, user_agent)
-    registrar(
-        db, accion="login", entidad="usuario", entidad_id=usuario.id, usuario_id=usuario.id, ip=ip
+    sesion.add(IntentoLogin(email=email, ip=ip, exitoso=True, creado_en=reloj.ahora()))
+    fila, token = _nuevo_refresh(usuario.id, uuid.uuid4())
+    sesion.add(fila)
+    await registrar_auditoria(
+        sesion,
+        usuario_id=usuario.id,
+        accion="auth.login",
+        entidad="usuario",
+        entidad_id=usuario.id,
+        ip=ip,
     )
-    db.commit()
-    return _sesion(usuario, token)
+    await sesion.commit()
+    return _emitir(usuario, token)
 
 
-def refrescar(db: Session, refresh_token: str, ip: str | None, user_agent: str | None) -> Sesion:
-    fila = db.scalar(
+async def refrescar(sesion: AsyncSession, refresh_token: str, ip: str) -> SesionEmitida:
+    # FOR UPDATE: dos peticiones simultáneas con el mismo token se serializan y solo una rota.
+    fila = await sesion.scalar(
         select(RefreshToken)
         .where(RefreshToken.token_hash == hash_token(refresh_token))
         .with_for_update()
     )
     if fila is None:
-        raise RefreshInvalido()
+        raise _token_invalido()
 
-    if fila.revocado_en is not None:
-        # Reutilización de un token ya rotado o revocado: posible robo. Se corta toda la sesión.
-        _revocar_familia(db, fila.familia_id)
-        registrar(
-            db,
-            accion="refresh_reutilizado",
-            entidad="sesion",
-            entidad_id=fila.familia_id,
+    if fila.usado_en is not None:
+        # CB-14: reutilización de un token ya rotado. Se cortan todas las sesiones del usuario.
+        await revocar_todas_las_sesiones(sesion, fila.usuario_id)
+        await registrar_auditoria(
+            sesion,
             usuario_id=fila.usuario_id,
+            accion="auth.refresh_reutilizado",
+            entidad="usuario",
+            entidad_id=fila.usuario_id,
+            datos={"familia_id": str(fila.familia_id)},
             ip=ip,
         )
-        db.commit()
-        raise RefreshInvalido()
+        await sesion.commit()
+        raise _token_invalido()
 
-    usuario = db.get(Usuario, fila.usuario_id)
-    if fila.expira_en <= _ahora() or usuario is None or not usuario.activo:
-        _revocar_familia(db, fila.familia_id)
-        db.commit()
-        raise RefreshInvalido()
+    usuario = await sesion.get(Usuario, fila.usuario_id)
+    if (
+        fila.revocado_en is not None
+        or fila.expira_en <= reloj.ahora()
+        or usuario is None
+        or not usuario.activo
+    ):
+        await sesion.rollback()
+        raise _token_invalido()
 
-    nueva, token = _emitir_refresh(db, usuario, fila.familia_id, ip, user_agent)
-    db.flush()  # la nueva fila debe existir antes de que la antigua la referencie
-    fila.revocado_en = _ahora()
-    fila.reemplazado_por = nueva.id
-    db.commit()
-    return _sesion(usuario, token)
+    fila.usado_en = reloj.ahora()
+    nueva, token = _nuevo_refresh(usuario.id, fila.familia_id)
+    sesion.add(nueva)
+    await sesion.commit()
+    return _emitir(usuario, token)
 
 
-def logout(db: Session, refresh_token: str, ip: str | None) -> None:
-    """Revoca la sesión (toda la familia del token). Es idempotente."""
-    fila = db.scalar(
+async def logout(sesion: AsyncSession, refresh_token: str, ip: str) -> None:
+    """Revoca el refresh token recibido. Idempotente."""
+    fila = await sesion.scalar(
         select(RefreshToken).where(RefreshToken.token_hash == hash_token(refresh_token))
     )
-    if fila is None:
+    if fila is None or fila.revocado_en is not None:
         return
-    _revocar_familia(db, fila.familia_id)
-    registrar(
-        db,
-        accion="logout",
-        entidad="sesion",
-        entidad_id=fila.familia_id,
+    fila.revocado_en = reloj.ahora()
+    await registrar_auditoria(
+        sesion,
         usuario_id=fila.usuario_id,
+        accion="auth.logout",
+        entidad="usuario",
+        entidad_id=fila.usuario_id,
         ip=ip,
     )
-    db.commit()
+    await sesion.commit()
+
+
+async def cambiar_password(
+    sesion: AsyncSession, usuario: Usuario, actual: str, nueva: str, ip: str
+) -> None:
+    if not verificar_password(usuario.password_hash, actual):
+        raise ErrorApi("password_incorrecta", status=400)
+    usuario.password_hash = hash_password(nueva)
+    await revocar_todas_las_sesiones(sesion, usuario.id)
+    await registrar_auditoria(
+        sesion,
+        usuario_id=usuario.id,
+        accion="auth.cambio_password",
+        entidad="usuario",
+        entidad_id=usuario.id,
+        ip=ip,
+    )
+    await sesion.commit()

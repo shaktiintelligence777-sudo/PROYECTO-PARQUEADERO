@@ -1,76 +1,74 @@
-from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response, status
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, Depends, Request, Response, status
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.deps import get_ip, get_usuario_actual
-from app.db.session import get_db
+from app.core.dependencias import ip_cliente, usuario_actual
+from app.db.sesion import obtener_sesion
 from app.modules.auth import service
-from app.modules.auth.schemas import LoginIn, RefreshIn, TokensOut
-from app.modules.usuarios.models import Usuario
-from app.modules.usuarios.schemas import UsuarioOut
+from app.modules.auth.models import Usuario
+from app.modules.auth.schemas import (
+    CambioPasswordEntrada,
+    LoginEntrada,
+    RefreshEntrada,
+    Sesion,
+)
+from app.modules.auth.schemas import Usuario as UsuarioSalida
 
-router = APIRouter(prefix="/auth", tags=["auth"])
-
-_CREDENCIALES_INVALIDAS = "Email o contraseña incorrectos"
-_SESION_INVALIDA = "Sesión inválida o expirada"
+router = APIRouter(prefix="/auth", tags=["Auth"])
 
 
-def _tokens(sesion: service.Sesion) -> TokensOut:
-    return TokensOut(
-        access_token=sesion.access_token,
-        refresh_token=sesion.refresh_token,
-        expires_in=sesion.expires_in,
-        usuario=UsuarioOut.model_validate(sesion.usuario),
+def _sesion(emitida: service.SesionEmitida, response: Response) -> Sesion:
+    response.headers["Cache-Control"] = "no-store"
+    return Sesion(
+        access_token=emitida.access_token,
+        refresh_token=emitida.refresh_token,
+        expires_in=emitida.expires_in,
+        usuario=UsuarioSalida.model_validate(emitida.usuario),
     )
 
 
-@router.post("/login", response_model=TokensOut)
-def login(
-    datos: LoginIn,
+@router.post("/login", response_model=Sesion)
+async def login(
+    datos: LoginEntrada,
     request: Request,
     response: Response,
-    user_agent: str | None = Header(default=None),
-    db: Session = Depends(get_db),
-) -> TokensOut:
-    try:
-        sesion = service.login(db, datos.email, datos.password, get_ip(request), user_agent)
-    except service.DemasiadosIntentos as exc:
-        raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail="Demasiados intentos. Intenta de nuevo más tarde.",
-            headers={"Retry-After": str(exc.reintentar_en)},
-        ) from exc
-    except service.CredencialesInvalidas as exc:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail=_CREDENCIALES_INVALIDAS
-        ) from exc
-    response.headers["Cache-Control"] = "no-store"
-    return _tokens(sesion)
+    sesion: AsyncSession = Depends(obtener_sesion),
+) -> Sesion:
+    emitida = await service.login(sesion, datos.email, datos.password, ip_cliente(request))
+    return _sesion(emitida, response)
 
 
-@router.post("/refresh", response_model=TokensOut)
-def refresh(
-    datos: RefreshIn,
+@router.post("/refresh", response_model=Sesion)
+async def refrescar(
+    datos: RefreshEntrada,
     request: Request,
     response: Response,
-    user_agent: str | None = Header(default=None),
-    db: Session = Depends(get_db),
-) -> TokensOut:
-    try:
-        sesion = service.refrescar(db, datos.refresh_token, get_ip(request), user_agent)
-    except service.RefreshInvalido as exc:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail=_SESION_INVALIDA
-        ) from exc
-    response.headers["Cache-Control"] = "no-store"
-    return _tokens(sesion)
+    sesion: AsyncSession = Depends(obtener_sesion),
+) -> Sesion:
+    emitida = await service.refrescar(sesion, datos.refresh_token, ip_cliente(request))
+    return _sesion(emitida, response)
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
-def logout(datos: RefreshIn, request: Request, db: Session = Depends(get_db)) -> Response:
-    service.logout(db, datos.refresh_token, get_ip(request))
+async def logout(
+    datos: RefreshEntrada, request: Request, sesion: AsyncSession = Depends(obtener_sesion)
+) -> Response:
+    await service.logout(sesion, datos.refresh_token, ip_cliente(request))
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
-@router.get("/me", response_model=UsuarioOut)
-def me(usuario: Usuario = Depends(get_usuario_actual)) -> Usuario:
+@router.get("/me", response_model=UsuarioSalida)
+async def me(usuario: Usuario = Depends(usuario_actual)) -> Usuario:
     return usuario
+
+
+@router.put("/password", status_code=status.HTTP_204_NO_CONTENT)
+async def cambiar_password(
+    datos: CambioPasswordEntrada,
+    request: Request,
+    usuario: Usuario = Depends(usuario_actual),
+    sesion: AsyncSession = Depends(obtener_sesion),
+) -> Response:
+    await service.cambiar_password(
+        sesion, usuario, datos.password_actual, datos.password_nueva, ip_cliente(request)
+    )
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

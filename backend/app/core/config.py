@@ -3,74 +3,57 @@
 from functools import lru_cache
 from typing import Annotated, Literal
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
 def normalizar_database_url(url: str) -> str:
-    """Los proveedores (Render, Neon, Supabase) entregan postgres:// o postgresql://;
-    SQLAlchemy necesita el driver explícito."""
-    for prefijo in ("postgres://", "postgresql://"):
+    """Los proveedores (Render, Neon) entregan postgres:// o postgresql://; SQLAlchemy necesita
+    el driver asíncrono explícito."""
+    for prefijo in ("postgres://", "postgresql://", "postgresql+psycopg://"):
         if url.startswith(prefijo):
-            return "postgresql+psycopg://" + url[len(prefijo) :]
+            return "postgresql+asyncpg://" + url[len(prefijo) :]
     return url
 
 
-class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+class Ajustes(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=".env", env_file_encoding="utf-8", extra="ignore", populate_by_name=True
+    )
 
     entorno: Literal["desarrollo", "pruebas", "produccion"] = Field(
         default="desarrollo", alias="ENTORNO"
     )
-
     database_url: str = Field(alias="DATABASE_URL")
-
-    jwt_secret: str = Field(alias="JWT_SECRET", min_length=32)
-    jwt_algoritmo: str = "HS256"
-    jwt_emisor: str = "parqueadero-api"
-    access_token_minutos: int = Field(default=15, alias="ACCESS_TOKEN_MINUTOS", gt=0)
-    refresh_token_dias: int = Field(default=14, alias="REFRESH_TOKEN_DIAS", gt=0)
-
-    cors_origins: Annotated[list[str], NoDecode] = Field(default_factory=list, alias="CORS_ORIGINS")
-
-    login_max_intentos_email: int = Field(default=5, alias="LOGIN_MAX_INTENTOS_EMAIL", gt=0)
-    login_max_intentos_ip: int = Field(default=20, alias="LOGIN_MAX_INTENTOS_IP", gt=0)
-    login_ventana_segundos: int = Field(default=300, alias="LOGIN_VENTANA_SEGUNDOS", gt=0)
-
-    internal_job_token: str | None = Field(default=None, alias="INTERNAL_JOB_TOKEN")
-
+    jwt_secreto: str = Field(alias="JWT_SECRETO", min_length=32)
+    service_token: str = Field(alias="SERVICE_TOKEN", min_length=32)
+    cors_origenes: Annotated[list[str], NoDecode] = Field(
+        default=["http://localhost:5173"], alias="CORS_ORIGENES"
+    )
     zona_horaria: str = Field(default="America/Bogota", alias="ZONA_HORARIA")
-    dias_por_vencer: int = Field(default=3, alias="DIAS_POR_VENCER", ge=0)
+
+    # B-03
+    jwt_minutos_acceso: int = Field(default=15, alias="JWT_MINUTOS_ACCESO", gt=0)
+    refresh_dias: int = Field(default=30, alias="REFRESH_DIAS", gt=0)
+    login_max_fallos_email: int = Field(default=5, alias="LOGIN_MAX_FALLOS_EMAIL", gt=0)
+    login_max_fallos_ip: int = Field(default=20, alias="LOGIN_MAX_FALLOS_IP", gt=0)
+    login_ventana_minutos: int = Field(default=15, alias="LOGIN_VENTANA_MINUTOS", gt=0)
 
     @field_validator("database_url")
     @classmethod
     def _normalizar_database_url(cls, v: str) -> str:
         return normalizar_database_url(v)
 
-    @field_validator("cors_origins", mode="before")
+    @field_validator("cors_origenes", mode="before")
     @classmethod
     def _separar_origenes(cls, v: object) -> object:
         if isinstance(v, str):
-            return [o.strip().rstrip("/") for o in v.split(",") if o.strip()]
+            v = [o.strip().rstrip("/") for o in v.split(",") if o.strip()]
+        if isinstance(v, list) and "*" in v:
+            raise ValueError("CORS_ORIGENES no puede ser '*'")
         return v
-
-    @field_validator("internal_job_token")
-    @classmethod
-    def _token_interno_largo(cls, v: str | None) -> str | None:
-        if v is not None and v != "" and len(v) < 32:
-            raise ValueError("INTERNAL_JOB_TOKEN debe tener al menos 32 caracteres")
-        return v or None
-
-    @model_validator(mode="after")
-    def _reglas_produccion(self) -> "Settings":
-        if self.entorno == "produccion":
-            if "*" in self.cors_origins:
-                raise ValueError("En producción CORS_ORIGINS no puede ser '*'")
-            if "sslmode=disable" in self.database_url:
-                raise ValueError("En producción la conexión a PostgreSQL debe usar TLS")
-        return self
 
 
 @lru_cache
-def get_settings() -> Settings:
-    return Settings()  # type: ignore[call-arg]
+def obtener_ajustes() -> Ajustes:
+    return Ajustes()

@@ -1,21 +1,15 @@
-name: Backend CI
+name: CI
 
 on:
   pull_request:
-    paths:
-      - "backend/**"
-      - ".github/workflows/backend-ci.yml"
   push:
     branches: [main]
-    paths:
-      - "backend/**"
-      - ".github/workflows/backend-ci.yml"
 
 permissions:
   contents: read
 
 jobs:
-  pruebas:
+  backend:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -37,8 +31,7 @@ jobs:
           --health-retries 10
 
     env:
-      TEST_DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/parqueadero_test
-      DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/parqueadero_test
+      TEST_DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/parqueadero_test
 
     steps:
       - uses: actions/checkout@v4
@@ -57,11 +50,11 @@ jobs:
           ruff check .
           ruff format --check .
 
-      - name: Pruebas (aplica las migraciones sobre una base limpia)
-        run: pytest
+      - name: Tipos
+        run: mypy app
 
-      - name: Los modelos coinciden con las migraciones
-        run: alembic check
+      - name: Pruebas (migran una base limpia; incluyen alembic check)
+        run: pytest
 
       - name: Construir imagen Docker
         run: docker build -t parqueadero-api .
