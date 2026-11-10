@@ -35,3 +35,10 @@ export function montar(ruta: string, e: Entorno) {
     </QueryClientProvider>,
   );
 }
+
+/** Deja una sesión iniciada: al montar, el refresh guardado se restaura. */
+export async function iniciarSesion(e: Entorno, rol: 'admin' | 'operador' = 'operador') {
+  const email = rol === 'admin' ? 'demo@parqueadero.app' : 'operador@parqueadero.app';
+  const s = await e.api.login({ email, password: 'demo1234' });
+  e.almacen.guardar(s.refresh_token);
+}

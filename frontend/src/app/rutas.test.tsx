@@ -23,7 +23,9 @@ describe('ruteo', () => {
   });
   it.each(RUTAS.filter((r) => r.rol !== 'publico').map((r) => [r.ruta, r.pantalla] as const))('CA-3 %s muestra %s', async (ruta, pantalla) => {
     montar(ruta.replace(':id', '123'), e);
-    expect(await screen.findByRole('heading', { name: pantalla })).toBeInTheDocument();
+    // P3 ya es la pantalla real (A-05): su título es "Acceso".
+    const titulo = ruta === '/acceso' ? 'Acceso' : pantalla;
+    expect(await screen.findByRole('heading', { name: titulo })).toBeInTheDocument();
   });
   it('CA-3 ruta desconocida', async () => {
     montar('/no-existe', e);

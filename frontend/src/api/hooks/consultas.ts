@@ -21,7 +21,9 @@ export const useVistaPreviaPago = (d: { membresia_id: string; periodos?: number 
   useQuery({ queryKey: claves.vistaPreviaPago(d), queryFn: () => obtenerApi().previsualizarPago(d), enabled: habilitado });
 export const useConsultaPlaca = (placa: string, habilitado = true) =>
   useQuery({ queryKey: claves.placa(placa), queryFn: () => obtenerApi().consultarPlaca(placa), enabled: habilitado, retry: false });
-export const useMotosDentro = (f?: { placa?: string }) => useQuery({ queryKey: claves.dentro(f), queryFn: () => obtenerApi().listarMotosDentro(f) });
+/** `refrescarCadaMs` activa el sondeo periódico (la lista "Dentro" se refresca cada 30 s). */
+export const useMotosDentro = (f?: { placa?: string }, refrescarCadaMs?: number) =>
+  useQuery({ queryKey: claves.dentro(f), queryFn: () => obtenerApi().listarMotosDentro(f), ...lista, refetchInterval: refrescarCadaMs });
 export const useHistorialAccesos = (f?: FiltrosHistorial) =>
   useQuery({ queryKey: claves.historial(f), queryFn: () => obtenerApi().listarHistorialAccesos(f), ...lista });
 export const useResumenDashboard = () => useQuery({ queryKey: claves.dashboard, queryFn: () => obtenerApi().resumenDashboard() });
