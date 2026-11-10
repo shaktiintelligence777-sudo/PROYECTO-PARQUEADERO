@@ -329,7 +329,7 @@ Leyenda de estado: ⬜ por escribir · 📝 borrador · ✅ lista · 🔨 en con
 | F-03 | `docs/ui/design-system.md`: tokens (color, tipografía, espaciado), componentes base | Fable | — | ✔️ |
 | F-04 | `docs/ui/pantallas.md`: wireframes y flujos P1–P9 | Fable | F-01, F-03 | ✔️ |
 | F-05 | `CLAUDE.md`: reglas para constructores | Fable | — | ✔️ |
-| F-06 | Specs de las fases A y B | Fable | F-01…F-04 | 📝 |
+| F-06 | Specs de las fases A, B y C | Fable | F-01…F-04 | ✔️ |
 
 ### Línea A · Demo (frontend + mock)
 
@@ -355,21 +355,21 @@ Leyenda de estado: ⬜ por escribir · 📝 borrador · ✅ lista · 🔨 en con
 | B-01 | Andamiaje backend: FastAPI, config, Docker, pytest, CI | Sonnet | F-05 | ✅ |
 | B-02 | Esquema de BD completo + migraciones Alembic + semilla | **Opus** | F-01, B-01 | ✅ |
 | B-03 | Autenticación: login, refresh rotativo, roles, rate limit, auditoría | **Opus** | B-02 | ✅ |
-| B-04 | Accesos: entrada/salida, “dentro ahora”, historial | Sonnet | B-03 | ⬜ |
-| B-05 | Clientes, motos y planes (CRUD) | Sonnet | B-03 | ⬜ |
-| B-06 | Membresías y pagos: estados, extensión de vencimiento, reglas | **Opus** | B-05 | ⬜ |
-| B-07 | Notificaciones: programación, envío por email, job + cron de Actions | **Opus** | B-06 | ⬜ |
-| B-08 | Dashboard y reportes (resumen, export CSV) | Sonnet | B-04, B-06 | ⬜ |
-| B-09 | Despliegue: hosting backend + PostgreSQL gestionado + secretos | **Opus** | B-03 | ⬜ |
-| B-10 | Usuarios y configuración (P9) — backend y pantalla | Sonnet | B-03, A-04 | ⬜ |
+| B-04 | Accesos: entrada/salida, “dentro ahora”, historial | Sonnet | B-03 | ✅ |
+| B-05 | Clientes, motos y planes (CRUD) | Sonnet | B-03, B-04 | ✅ |
+| B-06 | Membresías y pagos: estados, extensión de vencimiento, reglas | **Opus** | B-05 | ✅ |
+| B-07 | Notificaciones: programación, envío por email, job + cron de Actions | **Opus** | B-06 | ✅ |
+| B-08 | Dashboard y reportes (resumen, export CSV) | Sonnet | B-04, B-06 | ✅ |
+| B-09 | Despliegue: hosting backend + PostgreSQL gestionado + secretos | **Opus** | B-03 | ✅ |
+| B-10 | Usuarios y configuración (P9) — backend y pantalla | Sonnet | B-03, B-07, A-04 | ✅ |
 
 ### Convergencia (C)
 
 | ID | Módulo | Agente | Depende de | Estado |
 |---|---|---|---|---|
-| C-01 | Adaptador **live** del frontend + `VITE_API_MODE` + manejo de tokens | **Opus** | A-02, B-03 | ⬜ |
-| C-02 | Pruebas e2e (Playwright) contra backend real en staging | Sonnet | C-01, B-09 | ⬜ |
-| C-03 | Auditoría de seguridad final | **Opus** | C-01 | ⬜ |
+| C-01 | Adaptador **live** del frontend + `VITE_API_MODE` + manejo de tokens | **Opus** | A-02, A-04, B-03 | ✅ |
+| C-02 | Pruebas e2e (Playwright) contra backend real en staging | Sonnet | C-01, B-09 | ✅ |
+| C-03 | Auditoría de seguridad final | **Opus** | C-01 | ✅ |
 | C-04 | Aceptación contra la visión y salida a producción | Fable | C-02, C-03 | ⬜ |
 
 ---
