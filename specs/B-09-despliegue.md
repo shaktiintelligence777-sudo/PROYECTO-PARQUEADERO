@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 |---|---|
-| Estado | lista |
+| Estado | en revisión |
 | Línea | B (fullstack) |
 | Asignado a | Opus |
 | Revisa | Fable |
@@ -87,4 +87,5 @@ Base PostgreSQL 16 en Neon, región más cercana a Colombia disponible.
 
 ## 8. Preguntas abiertas
 
-- …
+- **Archivos fuera del alcance (para Fable).** Neon entrega URLs con `sslmode=require&channel_binding=require`, que asyncpg no acepta, y las migraciones crean su propio motor. Para que `alembic upgrade head` use las mismas reglas de TLS que la API toqué `backend/alembic/env.py` (usa `crear_motor` de `app/db/sesion.py`). Las pruebas de CA-4 están en `backend/tests/test_sesion.py`. Se retiró `backend/docker-entrypoint.sh` (lo sustituye `scripts/arranque.sh`).
+- **Pendiente del dueño.** CA-1, CA-2, CA-3, CA-5 y CA-7 se verifican cuando el dueño cree las cuentas de Neon y Render y cargue los secretos (`docs/operacion.md`, secciones 1 a 5).
