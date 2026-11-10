@@ -1,4 +1,4 @@
-import { Banknote, History, IdCard, LayoutDashboard, LogOut, MoreHorizontal, ScanLine, Settings, Users, type LucideIcon } from 'lucide-react';
+import { Banknote, History, IdCard, KeyRound, LayoutDashboard, LogOut, MoreHorizontal, ScanLine, Settings, Users, type LucideIcon } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 import { NavLink } from 'react-router-dom';
 import { Hoja } from './Hoja';
@@ -7,6 +7,8 @@ import { cx } from './cx';
 export interface ArmazonProps {
   usuario: { nombre: string; rol: 'admin' | 'operador' };
   alCerrarSesion: () => void;
+  /** Si se pasa, aparece la acción "Cambiar contraseña" en la barra lateral y en "Más". */
+  alCambiarPassword?: () => void;
   children: ReactNode;
 }
 
@@ -26,7 +28,7 @@ const INFERIOR = ['/', '/clientes', '/acceso', '/membresias'];
 const foco = 'focus-visible:outline-info';
 
 /** Layout de la app autenticada: navegación inferior en móvil y barra lateral desde `md`. */
-export function Armazon({ usuario, alCerrarSesion, children }: ArmazonProps) {
+export function Armazon({ usuario, alCerrarSesion, alCambiarPassword, children }: ArmazonProps) {
   const [masAbierto, setMasAbierto] = useState(false);
   const visibles = DESTINOS.filter((d) => !d.soloAdmin || usuario.rol === 'admin');
   const inferiores = INFERIOR.map((r) => visibles.find((d) => d.ruta === r)!);
@@ -54,6 +56,11 @@ export function Armazon({ usuario, alCerrarSesion, children }: ArmazonProps) {
         <div className="border-t border-asfalto-700 pt-3">
           <p className="truncate text-apoyo">{usuario.nombre}</p>
           <p className="mb-2 text-micro uppercase text-asfalto-300">{usuario.rol}</p>
+          {alCambiarPassword && (
+            <button type="button" onClick={alCambiarPassword} className="flex h-11 w-full items-center gap-3 rounded-control px-3 text-cuerpo text-asfalto-200 hover:bg-asfalto-700">
+              <KeyRound aria-hidden="true" className="size-5" /> Cambiar contraseña
+            </button>
+          )}
           <button type="button" onClick={alCerrarSesion} className="flex h-11 w-full items-center gap-3 rounded-control px-3 text-cuerpo text-asfalto-200 hover:bg-asfalto-700">
             <LogOut aria-hidden="true" className="size-5" /> Cerrar sesión
           </button>
@@ -112,6 +119,13 @@ export function Armazon({ usuario, alCerrarSesion, children }: ArmazonProps) {
               </NavLink>
             </li>
           ))}
+          {alCambiarPassword && (
+            <li>
+              <button type="button" onClick={() => { setMasAbierto(false); alCambiarPassword(); }} className="flex h-12 w-full items-center gap-3 text-cuerpo text-asfalto-900">
+                <KeyRound aria-hidden="true" className="size-6 text-asfalto-500" /> Cambiar contraseña
+              </button>
+            </li>
+          )}
           <li>
             <button type="button" onClick={() => { setMasAbierto(false); alCerrarSesion(); }} className="flex h-12 w-full items-center gap-3 text-cuerpo text-peligro-texto">
               <LogOut aria-hidden="true" className="size-6" /> Cerrar sesión
