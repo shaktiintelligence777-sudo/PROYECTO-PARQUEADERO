@@ -175,7 +175,7 @@ erDiagram
         uuid plan_id FK
         date fecha_inicio
         date fecha_vencimiento
-        enum estado "activa | por_vencer | vencida | cancelada"
+        timestamp cancelada_en "null = no cancelada; el estado se calcula (D-8)"
     }
     PAGO {
         uuid id PK
@@ -324,20 +324,20 @@ Leyenda de estado: ⬜ por escribir · 📝 borrador · ✅ lista · 🔨 en con
 
 | ID | Entregable | Agente | Depende de | Estado |
 |---|---|---|---|---|
-| F-01 | `docs/dominio.md`: glosario, reglas de negocio, casos borde | Fable | — | ⬜ |
-| F-02 | `contracts/openapi.yaml`: contrato completo v1 | Fable | F-01 | ⬜ |
-| F-03 | `docs/ui/design-system.md`: tokens (color, tipografía, espaciado), componentes base | Fable | — | ⬜ |
+| F-01 | `docs/dominio.md`: glosario, reglas de negocio, casos borde | Fable | — | ✔️ |
+| F-02 | `contracts/openapi.yaml`: contrato completo v1 | Fable | F-01 | ✔️ |
+| F-03 | `docs/ui/design-system.md`: tokens (color, tipografía, espaciado), componentes base | Fable | — | ✔️ |
 | F-04 | `docs/ui/pantallas.md`: wireframes y flujos P1–P9 | Fable | F-01, F-03 | ⬜ |
-| F-05 | `CLAUDE.md`: reglas para constructores | Fable | — | ⬜ |
-| F-06 | Specs de las fases A y B | Fable | F-01…F-04 | ⬜ |
+| F-05 | `CLAUDE.md`: reglas para constructores | Fable | — | ✔️ |
+| F-06 | Specs de las fases A y B | Fable | F-01…F-04 | 📝 |
 
 ### Línea A · Demo (frontend + mock)
 
 | ID | Módulo | Agente | Depende de | Estado |
 |---|---|---|---|---|
-| A-01 | Andamiaje frontend: Vite, TS, Tailwind, HashRouter, layout, lint | Sonnet | F-03, F-05 | ⬜ |
-| A-02 | Capa `api/`: interfaz común + adaptador **mock** con datos semilla en localStorage | Sonnet | F-02, A-01 | ⬜ |
-| A-03 | Componentes base del design system (`ui/`) | Sonnet | F-03, A-01 | ⬜ |
+| A-01 | Andamiaje frontend: Vite, TS, Tailwind, HashRouter, layout, lint | Sonnet | F-03, F-05 | ✅ |
+| A-02 | Capa `api/`: interfaz común + adaptador **mock** con datos semilla en localStorage | Sonnet | F-02, A-01 | ✅ |
+| A-03 | Componentes base del design system (`ui/`) | Sonnet | F-03, A-01 | ✅ |
 | A-04 | P1 Login + guardas de ruta + manejo de sesión | Sonnet | A-02, A-03 | ⬜ |
 | A-05 | P3 Registro de acceso (entrada/salida por placa) | Sonnet | A-04 | ⬜ |
 | A-06 | P4/P5 Clientes y motos | Sonnet | A-04 | ⬜ |
@@ -352,9 +352,9 @@ Leyenda de estado: ⬜ por escribir · 📝 borrador · ✅ lista · 🔨 en con
 
 | ID | Módulo | Agente | Depende de | Estado |
 |---|---|---|---|---|
-| B-01 | Andamiaje backend: FastAPI, config, Docker, pytest, CI | Sonnet | F-05 | ⬜ |
-| B-02 | Esquema de BD completo + migraciones Alembic + semilla | **Opus** | F-01, B-01 | ⬜ |
-| B-03 | Autenticación: login, refresh rotativo, roles, rate limit, auditoría | **Opus** | B-02 | ⬜ |
+| B-01 | Andamiaje backend: FastAPI, config, Docker, pytest, CI | Sonnet | F-05 | ✅ |
+| B-02 | Esquema de BD completo + migraciones Alembic + semilla | **Opus** | F-01, B-01 | ✅ |
+| B-03 | Autenticación: login, refresh rotativo, roles, rate limit, auditoría | **Opus** | B-02 | ✅ |
 | B-04 | Accesos: entrada/salida, “dentro ahora”, historial | Sonnet | B-03 | ⬜ |
 | B-05 | Clientes, motos y planes (CRUD) | Sonnet | B-03 | ⬜ |
 | B-06 | Membresías y pagos: estados, extensión de vencimiento, reglas | **Opus** | B-05 | ⬜ |
@@ -431,6 +431,8 @@ Un módulo está hecho cuando:
 ## 7. Decisiones abiertas
 
 Fable debe cerrarlas en la fase 0, con confirmación del dueño del proyecto.
+
+> **Estado (2026-11-10):** se adoptaron las propuestas por defecto de D-1 a D-7 y se añadieron D-8 a D-12. Todas están registradas en [`docs/dominio.md`](dominio.md#1-decisiones-cerradas) y siguen **pendientes de confirmación** del dueño del proyecto.
 
 | ID | Pregunta | Propuesta por defecto |
 |---|---|---|

@@ -1,0 +1,1875 @@
+openapi: 3.1.0
+info:
+  title: API Parqueadero de motos
+  version: 1.0.0
+  description: |
+    Contrato único de la API (entregable F-02). Es la fuente de verdad para el
+    backend (FastAPI), el adaptador `live` y el adaptador `mock` del frontend.
+
+    Convenciones generales:
+
+    - Todas las rutas cuelgan de `/api/v1`.
+    - JSON en `snake_case`. Identificadores `uuid`.
+    - Dinero: enteros en COP. Fechas de calendario: `YYYY-MM-DD` en
+      `America/Bogota`. Instantes: ISO 8601 en UTC con sufijo `Z`.
+    - Listas paginadas con `pagina` (desde 1) y `por_pagina` (1 a 100, por
+      defecto 20). La respuesta tiene `items`, `total`, `pagina`, `por_pagina`.
+    - Todo error usa el esquema `Error`: `{"error": {"codigo", "mensaje", "detalles"}}`.
+      `codigo` es estable y es lo que debe leer el frontend; `mensaje` es texto
+      en español apto para mostrar.
+    - Las reglas `RN-xx` citadas están en `docs/dominio.md`.
+    - Salvo que se indique `x-roles: [admin]`, una operación admite `admin` y
+      `operador`.
+
+servers:
+  - url: http://localhost:8000/api/v1
+    description: Desarrollo local
+  - url: https://{host}/api/v1
+    description: Staging o producción
+    variables:
+      host:
+        default: api.example.com
+
+tags:
+  - name: Auth
+  - name: Usuarios
+  - name: Clientes
+  - name: Motos
+  - name: Planes
+  - name: Membresías
+  - name: Pagos
+  - name: Accesos
+  - name: Dashboard
+  - name: Notificaciones
+  - name: Configuración
+  - name: Interno
+  - name: Salud
+
+security:
+  - bearerAuth: []
+
+paths:
+  /salud:
+    get:
+      tags: [Salud]
+      operationId: salud
+      summary: Comprobación de vida del servicio
+      security: []
+      responses:
+        "200":
+          description: El servicio responde
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [estado, version]
+                properties:
+                  estado: { type: string, enum: [ok] }
+                  version: { type: string, examples: ["1.0.0"] }
+
+  # ------------------------------------------------------------------ Auth
+  /auth/login:
+    post:
+      tags: [Auth]
+      operationId: login
+      summary: Iniciar sesión con email y contraseña
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LoginEntrada" }
+      responses:
+        "200":
+          description: Sesión iniciada
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Sesion" }
+        "401":
+          description: "`credenciales_invalidas`. Mismo mensaje exista o no el email, o si el usuario está inactivo."
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "422": { $ref: "#/components/responses/Validacion" }
+        "429": { $ref: "#/components/responses/DemasiadosIntentos" }
+
+  /auth/refresh:
+    post:
+      tags: [Auth]
+      operationId: refrescarSesion
+      summary: Cambiar un refresh token por un par nuevo (rotación, RN-72)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RefreshEntrada" }
+      responses:
+        "200":
+          description: Par de tokens nuevo. El refresh anterior queda invalidado.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Sesion" }
+        "401":
+          description: "`token_invalido`: refresh desconocido, vencido, revocado o reutilizado."
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "422": { $ref: "#/components/responses/Validacion" }
+
+  /auth/logout:
+    post:
+      tags: [Auth]
+      operationId: logout
+      summary: Cerrar sesión revocando el refresh token
+      description: Idempotente. Responde 204 aunque el token ya no exista.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RefreshEntrada" }
+      responses:
+        "204": { description: Sesión cerrada }
+        "422": { $ref: "#/components/responses/Validacion" }
+
+  /auth/me:
+    get:
+      tags: [Auth]
+      operationId: usuarioActual
+      summary: Datos del usuario autenticado
+      responses:
+        "200":
+          description: Usuario actual
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Usuario" }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+
+  /auth/password:
+    put:
+      tags: [Auth]
+      operationId: cambiarPassword
+      summary: Cambiar la contraseña propia
+      description: Revoca todos los refresh tokens del usuario, incluido el de la sesión actual; el cliente debe volver a iniciar sesión.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [password_actual, password_nueva]
+              additionalProperties: false
+              properties:
+                password_actual: { type: string, minLength: 1, maxLength: 128 }
+                password_nueva: { $ref: "#/components/schemas/Password" }
+      responses:
+        "204": { description: Contraseña cambiada. Todas las sesiones quedan revocadas. }
+        "400":
+          description: "`password_incorrecta`: la contraseña actual no coincide."
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+        "422": { $ref: "#/components/responses/Validacion" }
+
+  # -------------------------------------------------------------- Usuarios
+  /usuarios:
+    get:
+      tags: [Usuarios]
+      operationId: listarUsuarios
+      summary: Listar usuarios
+      x-roles: [admin]
+      parameters:
+        - $ref: "#/components/parameters/Pagina"
+        - $ref: "#/components/parameters/PorPagina"
+        - name: activo
+          in: query
+          schema: { type: boolean }
+      responses:
+        "200":
+          description: Página de usuarios, ordenados por nombre
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Paginacion"
+                  - type: object
+                    required: [items]
+                    properties:
+                      items:
+                        type: array
+                        items: { $ref: "#/components/schemas/Usuario" }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+        "403": { $ref: "#/components/responses/SinPermiso" }
+    post:
+      tags: [Usuarios]
+      operationId: crearUsuario
+      summary: Crear usuario
+      x-roles: [admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UsuarioCrear" }
+      responses:
+        "201":
+          description: Usuario creado
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Usuario" }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+        "403": { $ref: "#/components/responses/SinPermiso" }
+        "409":
+          description: "`email_duplicado`"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "422": { $ref: "#/components/responses/Validacion" }
+
+  /usuarios/{id}:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    patch:
+      tags: [Usuarios]
+      operationId: editarUsuario
+      summary: Editar usuario, cambiar rol, activar o desactivar, restablecer contraseña
+      x-roles: [admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UsuarioEditar" }
+      responses:
+        "200":
+          description: Usuario actualizado
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Usuario" }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+        "403": { $ref: "#/components/responses/SinPermiso" }
+        "404": { $ref: "#/components/responses/NoEncontrado" }
+        "409":
+          description: "`email_duplicado`, `ultimo_admin` o `auto_desactivacion` (RN-74)"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "422": { $ref: "#/components/responses/Validacion" }
+
+  # -------------------------------------------------------------- Clientes
+  /clientes:
+    get:
+      tags: [Clientes]
+      operationId: listarClientes
+      summary: Listar y buscar clientes
+      parameters:
+        - $ref: "#/components/parameters/Pagina"
+        - $ref: "#/components/parameters/PorPagina"
+        - name: q
+          in: query
+          description: Busca por nombre (parcial, sin distinguir mayúsculas ni tildes), documento (prefijo) o placa (prefijo, normalizada).
+          schema: { type: string, minLength: 1, maxLength: 80 }
+        - name: estado_membresia
+          in: query
+          description: "`sin_membresia` devuelve clientes sin membresía o con membresía cancelada."
+          schema:
+            type: string
+            enum: [activa, por_vencer, vencida, sin_membresia]
+        - name: activo
+          in: query
+          description: Por defecto `true`.
+          schema: { type: boolean, default: true }
+      responses:
+        "200":
+          description: Página de clientes, ordenados por nombre
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Paginacion"
+                  - type: object
+                    required: [items]
+                    properties:
+                      items:
+                        type: array
+                        items: { $ref: "#/components/schemas/ClienteResumen" }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+        "422": { $ref: "#/components/responses/Validacion" }
+    post:
+      tags: [Clientes]
+      operationId: crearCliente
+      summary: Crear cliente, opcionalmente con sus motos
+      description: Alta rápida (P5). Si se envían `motos`, se crean en la misma transacción; si alguna placa ya existe no se crea nada.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ClienteCrear" }
+      responses:
+        "201":
+          description: Cliente creado
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ClienteDetalle" }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+        "409":
+          description: "`documento_duplicado` o `placa_duplicada`"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "422": { $ref: "#/components/responses/Validacion" }
+
+  /clientes/{id}:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    get:
+      tags: [Clientes]
+      operationId: obtenerCliente
+      summary: Ficha del cliente con motos y membresía actual
+      responses:
+        "200":
+          description: Ficha del cliente
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ClienteDetalle" }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+        "404": { $ref: "#/components/responses/NoEncontrado" }
+    patch:
+      tags: [Clientes]
+      operationId: editarCliente
+      summary: Editar cliente
+      description: Cambiar `activo` exige rol `admin` (RN-12).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ClienteEditar" }
+      responses:
+        "200":
+          description: Cliente actualizado
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ClienteDetalle" }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+        "403": { $ref: "#/components/responses/SinPermiso" }
+        "404": { $ref: "#/components/responses/NoEncontrado" }
+        "409":
+          description: "`documento_duplicado` o `cliente_con_moto_dentro`"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "422": { $ref: "#/components/responses/Validacion" }
+
+  # ----------------------------------------------------------------- Motos
+  /motos:
+    get:
+      tags: [Motos]
+      operationId: listarMotos
+      summary: Listar y buscar motos
+      parameters:
+        - $ref: "#/components/parameters/Pagina"
+        - $ref: "#/components/parameters/PorPagina"
+        - name: placa
+          in: query
+          description: Prefijo de placa; se normaliza antes de buscar (RN-01).
+          schema: { type: string, minLength: 1, maxLength: 10 }
+        - name: cliente_id
+          in: query
+          schema: { type: string, format: uuid }
+        - name: activo
+          in: query
+          description: Por defecto `true`.
+          schema: { type: boolean, default: true }
+      responses:
+        "200":
+          description: Página de motos, ordenadas por placa
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Paginacion"
+                  - type: object
+                    required: [items]
+                    properties:
+                      items:
+                        type: array
+                        items: { $ref: "#/components/schemas/MotoConCliente" }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+        "422": { $ref: "#/components/responses/Validacion" }
+    post:
+      tags: [Motos]
+      operationId: crearMoto
+      summary: Registrar una moto a un cliente existente
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: "#/components/schemas/MotoCrear"
+                - type: object
+                  required: [cliente_id]
+                  properties:
+                    cliente_id: { type: string, format: uuid }
+      responses:
+        "201":
+          description: Moto creada
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Moto" }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+        "404":
+          description: "`no_encontrado`: el cliente no existe o está inactivo."
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "409":
+          description: "`placa_duplicada`"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "422": { $ref: "#/components/responses/Validacion" }
+
+  /motos/{id}:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    patch:
+      tags: [Motos]
+      operationId: editarMoto
+      summary: Editar moto
+      description: Cambiar `activo` o `cliente_id` exige rol `admin` (RN-11, RN-13).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/MotoEditar" }
+      responses:
+        "200":
+          description: Moto actualizada
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Moto" }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+        "403": { $ref: "#/components/responses/SinPermiso" }
+        "404": { $ref: "#/components/responses/NoEncontrado" }
+        "409":
+          description: "`placa_duplicada` o `moto_dentro`"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "422": { $ref: "#/components/responses/Validacion" }
+
+  # ---------------------------------------------------------------- Planes
+  /planes:
+    get:
+      tags: [Planes]
+      operationId: listarPlanes
+      summary: Listar planes (sin paginar; son pocos)
+      parameters:
+        - name: activo
+          in: query
+          description: Si se omite devuelve todos.
+          schema: { type: boolean }
+      responses:
+        "200":
+          description: Planes ordenados por `duracion_dias` descendente
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/Plan" }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+    post:
+      tags: [Planes]
+      operationId: crearPlan
+      summary: Crear plan
+      x-roles: [admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PlanCrear" }
+      responses:
+        "201":
+          description: Plan creado
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Plan" }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+        "403": { $ref: "#/components/responses/SinPermiso" }
+        "409":
+          description: "`nombre_duplicado`: ya existe un plan activo con ese nombre."
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "422": { $ref: "#/components/responses/Validacion" }
+
+  /planes/{id}:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    patch:
+      tags: [Planes]
+      operationId: editarPlan
+      summary: Editar, activar o desactivar un plan
+      x-roles: [admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PlanEditar" }
+      responses:
+        "200":
+          description: Plan actualizado
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Plan" }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+        "403": { $ref: "#/components/responses/SinPermiso" }
+        "404": { $ref: "#/components/responses/NoEncontrado" }
+        "409":
+          description: "`nombre_duplicado`"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "422": { $ref: "#/components/responses/Validacion" }
+
+  # ------------------------------------------------------------ Membresías
+  /membresias:
+    get:
+      tags: [Membresías]
+      operationId: listarMembresias
+      summary: Listar membresías
+      parameters:
+        - $ref: "#/components/parameters/Pagina"
+        - $ref: "#/components/parameters/PorPagina"
+        - name: estado
+          in: query
+          description: Si se omite, devuelve todas las no canceladas.
+          schema: { $ref: "#/components/schemas/EstadoMembresia" }
+        - name: cliente_id
+          in: query
+          description: Con este filtro se incluyen también las canceladas (historial del cliente).
+          schema: { type: string, format: uuid }
+        - name: q
+          in: query
+          description: Busca por nombre o documento del cliente, o por placa.
+          schema: { type: string, minLength: 1, maxLength: 80 }
+      responses:
+        "200":
+          description: Página de membresías, ordenadas por `fecha_vencimiento` ascendente
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Paginacion"
+                  - type: object
+                    required: [items]
+                    properties:
+                      items:
+                        type: array
+                        items: { $ref: "#/components/schemas/Membresia" }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+        "422": { $ref: "#/components/responses/Validacion" }
+    post:
+      tags: [Membresías]
+      operationId: crearMembresia
+      summary: Crear membresía con su pago inicial (RN-31)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/MembresiaCrear" }
+      responses:
+        "201":
+          description: Membresía creada junto con su primer pago
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Membresia" }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+        "404":
+          description: "`no_encontrado`: cliente o plan inexistente, o cliente inactivo."
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "409":
+          description: "`membresia_existente` (RN-30) o `plan_inactivo` (RN-21)"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "422": { $ref: "#/components/responses/Validacion" }
+
+  /membresias/{id}:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    get:
+      tags: [Membresías]
+      operationId: obtenerMembresia
+      summary: Detalle de una membresía
+      responses:
+        "200":
+          description: Membresía
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Membresia" }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+        "404": { $ref: "#/components/responses/NoEncontrado" }
+    patch:
+      tags: [Membresías]
+      operationId: cambiarPlanMembresia
+      summary: Cambiar el plan de una membresía (RN-34)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [plan_id]
+              additionalProperties: false
+              properties:
+                plan_id: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Membresía con el plan nuevo; `fecha_vencimiento` no cambia
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Membresia" }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+        "404": { $ref: "#/components/responses/NoEncontrado" }
+        "409":
+          description: "`plan_inactivo` o `membresia_cancelada`"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "422": { $ref: "#/components/responses/Validacion" }
+
+  /membresias/{id}/cancelar:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    post:
+      tags: [Membresías]
+      operationId: cancelarMembresia
+      summary: Cancelar una membresía de forma definitiva (RN-35)
+      x-roles: [admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/MotivoEntrada" }
+      responses:
+        "200":
+          description: Membresía cancelada
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Membresia" }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+        "403": { $ref: "#/components/responses/SinPermiso" }
+        "404": { $ref: "#/components/responses/NoEncontrado" }
+        "409":
+          description: "`membresia_cancelada`: ya estaba cancelada."
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "422": { $ref: "#/components/responses/Validacion" }
+
+  /membresias/{id}/pagos:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    get:
+      tags: [Pagos]
+      operationId: listarPagosDeMembresia
+      summary: Pagos de una membresía, del más reciente al más antiguo
+      parameters:
+        - $ref: "#/components/parameters/Pagina"
+        - $ref: "#/components/parameters/PorPagina"
+      responses:
+        "200":
+          description: Página de pagos (incluye anulados)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PaginaPagos" }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+        "404": { $ref: "#/components/responses/NoEncontrado" }
+
+  # ----------------------------------------------------------------- Pagos
+  /pagos:
+    get:
+      tags: [Pagos]
+      operationId: listarPagos
+      summary: Listar pagos
+      parameters:
+        - $ref: "#/components/parameters/Pagina"
+        - $ref: "#/components/parameters/PorPagina"
+        - name: desde
+          in: query
+          description: Fecha (America/Bogota) de `creado_en`, inclusive.
+          schema: { type: string, format: date }
+        - name: hasta
+          in: query
+          description: Fecha (America/Bogota) de `creado_en`, inclusive.
+          schema: { type: string, format: date }
+        - name: cliente_id
+          in: query
+          schema: { type: string, format: uuid }
+        - name: metodo
+          in: query
+          schema: { $ref: "#/components/schemas/MetodoPago" }
+        - name: incluir_anulados
+          in: query
+          schema: { type: boolean, default: true }
+      responses:
+        "200":
+          description: Página de pagos, del más reciente al más antiguo
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PaginaPagos" }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+        "422": { $ref: "#/components/responses/Validacion" }
+    post:
+      tags: [Pagos]
+      operationId: registrarPago
+      summary: Registrar un pago y extender la membresía (RN-40 a RN-43)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PagoCrear" }
+      responses:
+        "201":
+          description: Pago registrado y membresía extendida
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PagoRegistrado" }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+        "404":
+          description: "`no_encontrado`: la membresía no existe."
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "409":
+          description: "`membresia_cancelada` o `plan_inactivo`"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "422":
+          description: "`validacion`. Incluye el caso `nota` obligatoria cuando el monto difiere del propuesto (RN-43)."
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /pagos/previsualizar:
+    post:
+      tags: [Pagos]
+      operationId: previsualizarPago
+      summary: Calcular periodo, monto sugerido y nuevo vencimiento sin guardar (RN-44)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [membresia_id]
+              additionalProperties: false
+              properties:
+                membresia_id: { type: string, format: uuid }
+                periodos: { type: integer, minimum: 1, maximum: 12, default: 1 }
+      responses:
+        "200":
+          description: Vista previa del pago
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PagoVistaPrevia" }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+        "404": { $ref: "#/components/responses/NoEncontrado" }
+        "409":
+          description: "`membresia_cancelada` o `plan_inactivo`"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "422": { $ref: "#/components/responses/Validacion" }
+
+  /pagos/{id}/anular:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    post:
+      tags: [Pagos]
+      operationId: anularPago
+      summary: Anular el último pago de una membresía (RN-46)
+      x-roles: [admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/MotivoEntrada" }
+      responses:
+        "200":
+          description: Pago anulado y vencimiento restaurado
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PagoRegistrado" }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+        "403": { $ref: "#/components/responses/SinPermiso" }
+        "404": { $ref: "#/components/responses/NoEncontrado" }
+        "409":
+          description: "`pago_no_anulable`: ya anulado, no es el último pago vigente, o es el único pago de la membresía."
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "422": { $ref: "#/components/responses/Validacion" }
+
+  # --------------------------------------------------------------- Accesos
+  /accesos/consulta:
+    get:
+      tags: [Accesos]
+      operationId: consultarPlaca
+      summary: Consultar una placa antes de registrar entrada o salida (RN-54)
+      parameters:
+        - name: placa
+          in: query
+          required: true
+          description: Placa completa; se normaliza (RN-01).
+          schema: { type: string, minLength: 4, maxLength: 10 }
+      responses:
+        "200":
+          description: Situación actual de la moto
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ConsultaPlaca" }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+        "404": { $ref: "#/components/responses/MotoNoRegistrada" }
+        "422": { $ref: "#/components/responses/Validacion" }
+
+  /accesos/entrada:
+    post:
+      tags: [Accesos]
+      operationId: registrarEntrada
+      summary: Registrar la entrada de una moto (RN-50 a RN-52)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AccesoEntrada" }
+      responses:
+        "201":
+          description: Entrada registrada. Revisar `advertencias`.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AccesoRegistrado" }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+        "404": { $ref: "#/components/responses/MotoNoRegistrada" }
+        "409":
+          description: "`moto_ya_dentro`"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "422": { $ref: "#/components/responses/Validacion" }
+
+  /accesos/salida:
+    post:
+      tags: [Accesos]
+      operationId: registrarSalida
+      summary: Registrar la salida de una moto (RN-53)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AccesoEntrada" }
+      responses:
+        "200":
+          description: Salida registrada; la estancia queda cerrada
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AccesoRegistrado" }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+        "404": { $ref: "#/components/responses/MotoNoRegistrada" }
+        "409":
+          description: "`moto_no_esta_dentro`"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "422": { $ref: "#/components/responses/Validacion" }
+
+  /accesos/dentro:
+    get:
+      tags: [Accesos]
+      operationId: listarMotosDentro
+      summary: Motos que están dentro ahora
+      description: Sin paginar. Ordenadas por `entrada_en` ascendente (la que lleva más tiempo, primero).
+      parameters:
+        - name: placa
+          in: query
+          description: Prefijo de placa para filtrar.
+          schema: { type: string, minLength: 1, maxLength: 10 }
+      responses:
+        "200":
+          description: Estancias abiertas
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items, total, capacidad]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/Estancia" }
+                  total: { type: integer, minimum: 0 }
+                  capacidad: { type: [integer, "null"], minimum: 1 }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+
+  /accesos/historial:
+    get:
+      tags: [Accesos]
+      operationId: listarHistorialAccesos
+      summary: Historial de estancias
+      x-roles: [admin]
+      parameters:
+        - $ref: "#/components/parameters/Pagina"
+        - $ref: "#/components/parameters/PorPagina"
+        - $ref: "#/components/parameters/HistorialDesde"
+        - $ref: "#/components/parameters/HistorialHasta"
+        - $ref: "#/components/parameters/HistorialPlaca"
+        - $ref: "#/components/parameters/HistorialOperador"
+        - $ref: "#/components/parameters/HistorialClienteId"
+      responses:
+        "200":
+          description: Página de estancias, de la entrada más reciente a la más antigua
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Paginacion"
+                  - type: object
+                    required: [items]
+                    properties:
+                      items:
+                        type: array
+                        items: { $ref: "#/components/schemas/Estancia" }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+        "403": { $ref: "#/components/responses/SinPermiso" }
+        "422": { $ref: "#/components/responses/Validacion" }
+
+  /accesos/historial/export:
+    get:
+      tags: [Accesos]
+      operationId: exportarHistorialAccesos
+      summary: Exportar el historial filtrado como CSV
+      description: |
+        Mismos filtros que `/accesos/historial`, sin paginación. El rango
+        `desde`–`hasta` es obligatorio y de máximo 366 días.
+        Columnas: `placa,cliente,documento,entrada,salida,duracion_minutos,operador_entrada,operador_salida`.
+        Fechas en `America/Bogota` con formato `YYYY-MM-DD HH:mm`. UTF-8 con BOM, separador coma.
+      x-roles: [admin]
+      parameters:
+        - $ref: "#/components/parameters/HistorialDesde"
+        - $ref: "#/components/parameters/HistorialHasta"
+        - $ref: "#/components/parameters/HistorialPlaca"
+        - $ref: "#/components/parameters/HistorialOperador"
+        - $ref: "#/components/parameters/HistorialClienteId"
+      responses:
+        "200":
+          description: Archivo CSV
+          headers:
+            Content-Disposition:
+              schema: { type: string, examples: ['attachment; filename="accesos_2026-11-01_2026-11-10.csv"'] }
+          content:
+            text/csv:
+              schema: { type: string }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+        "403": { $ref: "#/components/responses/SinPermiso" }
+        "422": { $ref: "#/components/responses/Validacion" }
+
+  # ------------------------------------------------------------- Dashboard
+  /dashboard/resumen:
+    get:
+      tags: [Dashboard]
+      operationId: resumenDashboard
+      summary: Indicadores del día
+      responses:
+        "200":
+          description: Resumen
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DashboardResumen" }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+
+  # -------------------------------------------------------- Notificaciones
+  /notificaciones:
+    get:
+      tags: [Notificaciones]
+      operationId: listarNotificaciones
+      summary: Listar notificaciones generadas
+      x-roles: [admin]
+      parameters:
+        - $ref: "#/components/parameters/Pagina"
+        - $ref: "#/components/parameters/PorPagina"
+        - name: estado
+          in: query
+          schema: { $ref: "#/components/schemas/EstadoNotificacion" }
+        - name: membresia_id
+          in: query
+          schema: { type: string, format: uuid }
+        - name: desde
+          in: query
+          description: Sobre `programada_para`, inclusive.
+          schema: { type: string, format: date }
+        - name: hasta
+          in: query
+          description: Sobre `programada_para`, inclusive.
+          schema: { type: string, format: date }
+      responses:
+        "200":
+          description: Página de notificaciones, de la más reciente a la más antigua
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Paginacion"
+                  - type: object
+                    required: [items]
+                    properties:
+                      items:
+                        type: array
+                        items: { $ref: "#/components/schemas/Notificacion" }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+        "403": { $ref: "#/components/responses/SinPermiso" }
+        "422": { $ref: "#/components/responses/Validacion" }
+
+  # --------------------------------------------------------- Configuración
+  /configuracion:
+    get:
+      tags: [Configuración]
+      operationId: obtenerConfiguracion
+      summary: Configuración del parqueadero
+      x-roles: [admin]
+      responses:
+        "200":
+          description: Configuración vigente
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Configuracion" }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+        "403": { $ref: "#/components/responses/SinPermiso" }
+    patch:
+      tags: [Configuración]
+      operationId: editarConfiguracion
+      summary: Editar configuración (parcial)
+      x-roles: [admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ConfiguracionEditar" }
+      responses:
+        "200":
+          description: Configuración actualizada
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Configuracion" }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+        "403": { $ref: "#/components/responses/SinPermiso" }
+        "422": { $ref: "#/components/responses/Validacion" }
+
+  # --------------------------------------------------------------- Interno
+  /internal/jobs/notificaciones:
+    post:
+      tags: [Interno]
+      operationId: ejecutarJobNotificaciones
+      summary: Generar y enviar las notificaciones de hoy (RN-60 a RN-64)
+      description: |
+        Lo invoca el cron de GitHub Actions. No acepta JWT de usuario: exige
+        `Authorization: Bearer <SERVICE_TOKEN>`, comparado en tiempo constante.
+        Idempotente dentro del mismo día. El adaptador mock no lo implementa.
+      security:
+        - serviceToken: []
+      responses:
+        "200":
+          description: Resultado de la ejecución
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [fecha, creadas, enviadas, fallidas, omitidas]
+                properties:
+                  fecha: { type: string, format: date, description: Hoy en America/Bogota }
+                  creadas: { type: integer, minimum: 0 }
+                  enviadas: { type: integer, minimum: 0 }
+                  fallidas: { type: integer, minimum: 0 }
+                  omitidas:
+                    type: integer
+                    minimum: 0
+                    description: Ya existían de una ejecución anterior del mismo día y no requerían reintento.
+        "401":
+          description: "`token_invalido`"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Token de acceso de 15 minutos obtenido en `/auth/login` o `/auth/refresh`.
+    serviceToken:
+      type: http
+      scheme: bearer
+      description: Token de servicio estático (variable de entorno `SERVICE_TOKEN`). Solo para `/internal/*`.
+
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    Pagina:
+      name: pagina
+      in: query
+      schema: { type: integer, minimum: 1, default: 1 }
+    PorPagina:
+      name: por_pagina
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+    HistorialDesde:
+      name: desde
+      in: query
+      description: Fecha (America/Bogota) de `entrada_en`, inclusive.
+      schema: { type: string, format: date }
+    HistorialHasta:
+      name: hasta
+      in: query
+      description: Fecha (America/Bogota) de `entrada_en`, inclusive.
+      schema: { type: string, format: date }
+    HistorialPlaca:
+      name: placa
+      in: query
+      description: Prefijo de placa.
+      schema: { type: string, minLength: 1, maxLength: 10 }
+    HistorialOperador:
+      name: operador_id
+      in: query
+      description: Usuario que registró la entrada o la salida.
+      schema: { type: string, format: uuid }
+    HistorialClienteId:
+      name: cliente_id
+      in: query
+      schema: { type: string, format: uuid }
+
+  responses:
+    NoAutenticado:
+      description: "`no_autenticado` (falta el token) o `token_invalido` (vencido o mal formado). El frontend intenta un refresh y, si falla, vuelve al login."
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    SinPermiso:
+      description: "`sin_permiso`: el rol del usuario no alcanza."
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    NoEncontrado:
+      description: "`no_encontrado`"
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    MotoNoRegistrada:
+      description: "`moto_no_registrada`: la placa no existe o la moto está inactiva (RN-51)."
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Validacion:
+      description: "`validacion`: el cuerpo o los parámetros no cumplen el esquema. `detalles` lista los campos."
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+          example:
+            error:
+              codigo: validacion
+              mensaje: Revisa los campos marcados.
+              detalles:
+                - campo: telefono
+                  mensaje: Debe tener entre 7 y 15 dígitos.
+    DemasiadosIntentos:
+      description: "`demasiados_intentos` (RN-75)"
+      headers:
+        Retry-After:
+          description: Segundos hasta poder reintentar.
+          schema: { type: integer }
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+
+  schemas:
+    # ------------------------------------------------------------ Comunes
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [codigo, mensaje]
+          properties:
+            codigo: { $ref: "#/components/schemas/CodigoError" }
+            mensaje:
+              type: string
+              description: Texto en español apto para mostrar al usuario.
+            detalles:
+              type: array
+              description: Solo en `validacion`.
+              items:
+                type: object
+                required: [campo, mensaje]
+                properties:
+                  campo:
+                    type: string
+                    description: Ruta del campo con puntos, p. ej. `motos.0.placa`.
+                  mensaje: { type: string }
+
+    CodigoError:
+      type: string
+      description: Catálogo cerrado de códigos de error. Agregar uno es un cambio de contrato.
+      enum:
+        - validacion
+        - no_autenticado
+        - token_invalido
+        - credenciales_invalidas
+        - password_incorrecta
+        - sin_permiso
+        - no_encontrado
+        - demasiados_intentos
+        - email_duplicado
+        - documento_duplicado
+        - placa_duplicada
+        - nombre_duplicado
+        - ultimo_admin
+        - auto_desactivacion
+        - cliente_con_moto_dentro
+        - moto_dentro
+        - moto_no_registrada
+        - moto_ya_dentro
+        - moto_no_esta_dentro
+        - membresia_existente
+        - membresia_cancelada
+        - plan_inactivo
+        - pago_no_anulable
+        - error_interno
+
+    Paginacion:
+      type: object
+      required: [total, pagina, por_pagina]
+      properties:
+        total: { type: integer, minimum: 0, description: Total de elementos que cumplen el filtro. }
+        pagina: { type: integer, minimum: 1 }
+        por_pagina: { type: integer, minimum: 1, maximum: 100 }
+
+    MotivoEntrada:
+      type: object
+      required: [motivo]
+      additionalProperties: false
+      properties:
+        motivo: { type: string, minLength: 5, maxLength: 300 }
+
+    Placa:
+      type: string
+      description: Placa normalizada (RN-01). En entradas se acepta con minúsculas, espacios o guiones y el servidor la normaliza.
+      pattern: "^[A-Z0-9]{4,7}$"
+      examples: ["ABC12D"]
+
+    PlacaEntrada:
+      type: string
+      description: Placa tal como la escribe el usuario. Tras normalizar debe cumplir `^[A-Z0-9]{4,7}$`.
+      minLength: 4
+      maxLength: 10
+      examples: ["abc-12d"]
+
+    Dinero:
+      type: integer
+      description: Pesos colombianos, sin decimales (RN-02).
+      minimum: 1
+      maximum: 100000000
+      examples: [60000]
+
+    Password:
+      type: string
+      format: password
+      minLength: 8
+      maxLength: 128
+
+    Rol:
+      type: string
+      enum: [admin, operador]
+
+    EstadoMembresia:
+      type: string
+      description: Calculado, no almacenado (RN-32).
+      enum: [activa, por_vencer, vencida, cancelada]
+
+    MetodoPago:
+      type: string
+      enum: [efectivo, transferencia, otro]
+
+    TipoNotificacion:
+      type: string
+      enum: [recordatorio, vencida]
+
+    CanalNotificacion:
+      type: string
+      enum: [email, whatsapp]
+
+    EstadoNotificacion:
+      type: string
+      enum: [pendiente, enviada, fallida, cancelada]
+
+    Advertencia:
+      type: string
+      description: RN-52.
+      enum: [sin_membresia, membresia_vencida, membresia_por_vencer]
+
+    UsuarioRef:
+      type: object
+      required: [id, nombre]
+      properties:
+        id: { type: string, format: uuid }
+        nombre: { type: string }
+
+    ClienteRef:
+      type: object
+      required: [id, nombre, documento, telefono]
+      properties:
+        id: { type: string, format: uuid }
+        nombre: { type: string }
+        documento: { type: string }
+        telefono: { type: string }
+
+    PlanRef:
+      type: object
+      required: [id, nombre, duracion_dias, precio]
+      properties:
+        id: { type: string, format: uuid }
+        nombre: { type: string }
+        duracion_dias: { type: integer }
+        precio: { $ref: "#/components/schemas/Dinero" }
+
+    # --------------------------------------------------------------- Auth
+    LoginEntrada:
+      type: object
+      required: [email, password]
+      additionalProperties: false
+      properties:
+        email: { type: string, format: email, maxLength: 254 }
+        password: { type: string, minLength: 1, maxLength: 128 }
+
+    RefreshEntrada:
+      type: object
+      required: [refresh_token]
+      additionalProperties: false
+      properties:
+        refresh_token: { type: string, minLength: 20, maxLength: 512 }
+
+    Sesion:
+      type: object
+      required: [access_token, refresh_token, token_type, expires_in, usuario]
+      properties:
+        access_token: { type: string, description: JWT firmado. }
+        refresh_token: { type: string, description: Opaco, de un solo uso. }
+        token_type: { type: string, enum: [bearer] }
+        expires_in:
+          type: integer
+          description: Segundos de vida del `access_token`.
+          examples: [900]
+        usuario: { $ref: "#/components/schemas/Usuario" }
+
+    # ----------------------------------------------------------- Usuarios
+    Usuario:
+      type: object
+      required: [id, email, nombre, rol, activo, creado_en]
+      properties:
+        id: { type: string, format: uuid }
+        email: { type: string, format: email }
+        nombre: { type: string }
+        rol: { $ref: "#/components/schemas/Rol" }
+        activo: { type: boolean }
+        creado_en: { type: string, format: date-time }
+
+    UsuarioCrear:
+      type: object
+      required: [email, nombre, rol, password]
+      additionalProperties: false
+      properties:
+        email: { type: string, format: email, maxLength: 254 }
+        nombre: { type: string, minLength: 2, maxLength: 80 }
+        rol: { $ref: "#/components/schemas/Rol" }
+        password: { $ref: "#/components/schemas/Password" }
+
+    UsuarioEditar:
+      type: object
+      minProperties: 1
+      additionalProperties: false
+      properties:
+        email: { type: string, format: email, maxLength: 254 }
+        nombre: { type: string, minLength: 2, maxLength: 80 }
+        rol: { $ref: "#/components/schemas/Rol" }
+        activo: { type: boolean }
+        password:
+          allOf: [{ $ref: "#/components/schemas/Password" }]
+          description: Restablece la contraseña y revoca las sesiones del usuario.
+
+    # ----------------------------------------------------- Clientes y motos
+    Moto:
+      type: object
+      required: [id, cliente_id, placa, marca, color, activo, dentro, creado_en]
+      properties:
+        id: { type: string, format: uuid }
+        cliente_id: { type: string, format: uuid }
+        placa: { $ref: "#/components/schemas/Placa" }
+        marca: { type: [string, "null"] }
+        color: { type: [string, "null"] }
+        activo: { type: boolean }
+        dentro:
+          type: boolean
+          description: Tiene una estancia abierta.
+        creado_en: { type: string, format: date-time }
+
+    MotoConCliente:
+      allOf:
+        - $ref: "#/components/schemas/Moto"
+        - type: object
+          required: [cliente]
+          properties:
+            cliente: { $ref: "#/components/schemas/ClienteRef" }
+
+    MotoCrear:
+      type: object
+      required: [placa]
+      properties:
+        placa: { $ref: "#/components/schemas/PlacaEntrada" }
+        marca: { type: [string, "null"], maxLength: 40 }
+        color: { type: [string, "null"], maxLength: 30 }
+
+    MotoEditar:
+      type: object
+      minProperties: 1
+      additionalProperties: false
+      properties:
+        placa: { $ref: "#/components/schemas/PlacaEntrada" }
+        marca: { type: [string, "null"], maxLength: 40 }
+        color: { type: [string, "null"], maxLength: 30 }
+        activo: { type: boolean, description: Solo admin. }
+        cliente_id: { type: string, format: uuid, description: Solo admin. }
+
+    MembresiaResumen:
+      type: object
+      description: Vista corta de la membresía, embebida en clientes y accesos.
+      required: [id, plan, fecha_vencimiento, estado, dias_restantes]
+      properties:
+        id: { type: string, format: uuid }
+        plan: { $ref: "#/components/schemas/PlanRef" }
+        fecha_vencimiento: { type: string, format: date }
+        estado: { $ref: "#/components/schemas/EstadoMembresia" }
+        dias_restantes:
+          type: integer
+          description: "`fecha_vencimiento − hoy`. Negativo si está vencida (RN-33)."
+
+    ClienteBase:
+      type: object
+      required: [id, nombre, documento, telefono, email, activo, creado_en]
+      properties:
+        id: { type: string, format: uuid }
+        nombre: { type: string }
+        documento: { type: string }
+        telefono: { type: string }
+        email: { type: [string, "null"], format: email }
+        notas: { type: [string, "null"] }
+        activo: { type: boolean }
+        creado_en: { type: string, format: date-time }
+
+    ClienteResumen:
+      allOf:
+        - $ref: "#/components/schemas/ClienteBase"
+        - type: object
+          required: [placas, membresia]
+          properties:
+            placas:
+              type: array
+              description: Placas de sus motos activas.
+              items: { $ref: "#/components/schemas/Placa" }
+            membresia:
+              description: Membresía no cancelada del cliente, o `null`.
+              oneOf:
+                - $ref: "#/components/schemas/MembresiaResumen"
+                - type: "null"
+
+    ClienteDetalle:
+      allOf:
+        - $ref: "#/components/schemas/ClienteBase"
+        - type: object
+          required: [motos, membresia]
+          properties:
+            motos:
+              type: array
+              description: Todas sus motos, activas primero.
+              items: { $ref: "#/components/schemas/Moto" }
+            membresia:
+              description: Membresía no cancelada del cliente, o `null`.
+              oneOf:
+                - $ref: "#/components/schemas/MembresiaResumen"
+                - type: "null"
+
+    ClienteCrear:
+      type: object
+      required: [nombre, documento, telefono]
+      additionalProperties: false
+      properties:
+        nombre: { type: string, minLength: 2, maxLength: 120 }
+        documento: { type: string, pattern: "^[A-Za-z0-9]{5,20}$" }
+        telefono: { type: string, pattern: "^\\+?[0-9]{7,15}$" }
+        email: { type: [string, "null"], format: email, maxLength: 254 }
+        notas: { type: [string, "null"], maxLength: 500 }
+        motos:
+          type: array
+          maxItems: 5
+          items: { $ref: "#/components/schemas/MotoCrear" }
+
+    ClienteEditar:
+      type: object
+      minProperties: 1
+      additionalProperties: false
+      properties:
+        nombre: { type: string, minLength: 2, maxLength: 120 }
+        documento: { type: string, pattern: "^[A-Za-z0-9]{5,20}$" }
+        telefono: { type: string, pattern: "^\\+?[0-9]{7,15}$" }
+        email: { type: [string, "null"], format: email, maxLength: 254 }
+        notas: { type: [string, "null"], maxLength: 500 }
+        activo: { type: boolean, description: Solo admin. }
+
+    # ------------------------------------------------------------- Planes
+    Plan:
+      type: object
+      required: [id, nombre, duracion_dias, precio, activo, creado_en]
+      properties:
+        id: { type: string, format: uuid }
+        nombre: { type: string }
+        duracion_dias: { type: integer, minimum: 1, maximum: 366 }
+        precio: { $ref: "#/components/schemas/Dinero" }
+        activo: { type: boolean }
+        creado_en: { type: string, format: date-time }
+
+    PlanCrear:
+      type: object
+      required: [nombre, duracion_dias, precio]
+      additionalProperties: false
+      properties:
+        nombre: { type: string, minLength: 2, maxLength: 60 }
+        duracion_dias: { type: integer, minimum: 1, maximum: 366 }
+        precio: { $ref: "#/components/schemas/Dinero" }
+
+    PlanEditar:
+      type: object
+      minProperties: 1
+      additionalProperties: false
+      properties:
+        nombre: { type: string, minLength: 2, maxLength: 60 }
+        duracion_dias: { type: integer, minimum: 1, maximum: 366 }
+        precio: { $ref: "#/components/schemas/Dinero" }
+        activo: { type: boolean }
+
+    # --------------------------------------------------------- Membresías
+    Membresia:
+      type: object
+      required:
+        [id, cliente, plan, fecha_inicio, fecha_vencimiento, estado, dias_restantes, cancelada_en, motivo_cancelacion, creado_en]
+      properties:
+        id: { type: string, format: uuid }
+        cliente: { $ref: "#/components/schemas/ClienteRef" }
+        plan: { $ref: "#/components/schemas/PlanRef" }
+        placas:
+          type: array
+          description: Placas de las motos activas del cliente.
+          items: { $ref: "#/components/schemas/Placa" }
+        fecha_inicio: { type: string, format: date }
+        fecha_vencimiento: { type: string, format: date }
+        estado: { $ref: "#/components/schemas/EstadoMembresia" }
+        dias_restantes: { type: integer }
+        cancelada_en: { type: [string, "null"], format: date-time }
+        motivo_cancelacion: { type: [string, "null"] }
+        creado_en: { type: string, format: date-time }
+
+    MembresiaCrear:
+      type: object
+      required: [cliente_id, plan_id, pago_inicial]
+      additionalProperties: false
+      properties:
+        cliente_id: { type: string, format: uuid }
+        plan_id: { type: string, format: uuid }
+        fecha_inicio:
+          type: string
+          format: date
+          description: Por defecto hoy. Entre hoy − 31 y hoy + 31 días (RN-31).
+        pago_inicial:
+          type: object
+          required: [monto, metodo]
+          additionalProperties: false
+          properties:
+            monto: { $ref: "#/components/schemas/Dinero" }
+            metodo: { $ref: "#/components/schemas/MetodoPago" }
+            nota:
+              type: [string, "null"]
+              maxLength: 300
+              description: Obligatoria si `monto` difiere de `plan.precio` (RN-43).
+
+    # -------------------------------------------------------------- Pagos
+    Pago:
+      type: object
+      required:
+        [id, membresia_id, cliente, plan, monto, metodo, periodos, periodo_desde, periodo_hasta, nota, registrado_por, creado_en, anulado, anulado_en, anulado_por, motivo_anulacion]
+      properties:
+        id: { type: string, format: uuid }
+        membresia_id: { type: string, format: uuid }
+        cliente: { $ref: "#/components/schemas/ClienteRef" }
+        plan:
+          allOf: [{ $ref: "#/components/schemas/PlanRef" }]
+          description: Plan vigente en la membresía cuando se registró el pago.
+        monto: { $ref: "#/components/schemas/Dinero" }
+        metodo: { $ref: "#/components/schemas/MetodoPago" }
+        periodos: { type: integer, minimum: 1, maximum: 12 }
+        periodo_desde: { type: string, format: date }
+        periodo_hasta: { type: string, format: date }
+        nota: { type: [string, "null"] }
+        registrado_por: { $ref: "#/components/schemas/UsuarioRef" }
+        creado_en: { type: string, format: date-time }
+        anulado: { type: boolean }
+        anulado_en: { type: [string, "null"], format: date-time }
+        anulado_por:
+          oneOf:
+            - $ref: "#/components/schemas/UsuarioRef"
+            - type: "null"
+        motivo_anulacion: { type: [string, "null"] }
+
+    PagoCrear:
+      type: object
+      required: [membresia_id, monto, metodo]
+      additionalProperties: false
+      properties:
+        membresia_id: { type: string, format: uuid }
+        monto: { $ref: "#/components/schemas/Dinero" }
+        metodo: { $ref: "#/components/schemas/MetodoPago" }
+        periodos: { type: integer, minimum: 1, maximum: 12, default: 1 }
+        nota:
+          type: [string, "null"]
+          maxLength: 300
+          description: Obligatoria si `monto` difiere de `plan.precio × periodos` (RN-43).
+
+    PagoVistaPrevia:
+      type: object
+      required: [membresia_id, plan, periodos, monto_sugerido, periodo_desde, periodo_hasta, vencimiento_actual, vencimiento_nuevo]
+      properties:
+        membresia_id: { type: string, format: uuid }
+        plan: { $ref: "#/components/schemas/PlanRef" }
+        periodos: { type: integer }
+        monto_sugerido: { $ref: "#/components/schemas/Dinero" }
+        periodo_desde: { type: string, format: date }
+        periodo_hasta: { type: string, format: date }
+        vencimiento_actual: { type: string, format: date }
+        vencimiento_nuevo: { type: string, format: date }
+
+    PagoRegistrado:
+      type: object
+      required: [pago, membresia]
+      properties:
+        pago: { $ref: "#/components/schemas/Pago" }
+        membresia:
+          allOf: [{ $ref: "#/components/schemas/Membresia" }]
+          description: Membresía tal como queda después de la operación.
+
+    PaginaPagos:
+      allOf:
+        - $ref: "#/components/schemas/Paginacion"
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items: { $ref: "#/components/schemas/Pago" }
+
+    # ------------------------------------------------------------ Accesos
+    AccesoEntrada:
+      type: object
+      required: [placa]
+      additionalProperties: false
+      properties:
+        placa: { $ref: "#/components/schemas/PlacaEntrada" }
+
+    Estancia:
+      type: object
+      required: [id, moto, cliente, entrada_en, salida_en, duracion_minutos, operador_entrada, operador_salida]
+      properties:
+        id: { type: string, format: uuid }
+        moto:
+          type: object
+          required: [id, placa, marca, color]
+          properties:
+            id: { type: string, format: uuid }
+            placa: { $ref: "#/components/schemas/Placa" }
+            marca: { type: [string, "null"] }
+            color: { type: [string, "null"] }
+        cliente: { $ref: "#/components/schemas/ClienteRef" }
+        entrada_en: { type: string, format: date-time }
+        salida_en:
+          type: [string, "null"]
+          format: date-time
+          description: "`null` = la moto está dentro."
+        duracion_minutos:
+          type: integer
+          minimum: 0
+          description: Hasta `salida_en`, o hasta ahora si sigue dentro.
+        operador_entrada: { $ref: "#/components/schemas/UsuarioRef" }
+        operador_salida:
+          oneOf:
+            - $ref: "#/components/schemas/UsuarioRef"
+            - type: "null"
+
+    ConsultaPlaca:
+      type: object
+      required: [moto, cliente, membresia, estancia_abierta, advertencias]
+      properties:
+        moto: { $ref: "#/components/schemas/Moto" }
+        cliente: { $ref: "#/components/schemas/ClienteRef" }
+        membresia:
+          description: Membresía no cancelada del cliente, o `null`.
+          oneOf:
+            - $ref: "#/components/schemas/MembresiaResumen"
+            - type: "null"
+        estancia_abierta:
+          description: Si no es `null`, la moto está dentro y la acción que corresponde es la salida.
+          oneOf:
+            - $ref: "#/components/schemas/Estancia"
+            - type: "null"
+        advertencias:
+          type: array
+          items: { $ref: "#/components/schemas/Advertencia" }
+
+    AccesoRegistrado:
+      type: object
+      required: [estancia, membresia, advertencias]
+      properties:
+        estancia: { $ref: "#/components/schemas/Estancia" }
+        membresia:
+          oneOf:
+            - $ref: "#/components/schemas/MembresiaResumen"
+            - type: "null"
+        advertencias:
+          type: array
+          description: En una salida siempre es una lista vacía.
+          items: { $ref: "#/components/schemas/Advertencia" }
+
+    # ---------------------------------------------------------- Dashboard
+    DashboardResumen:
+      type: object
+      required: [fecha, motos_dentro, capacidad, estancias_largas, entradas_hoy, salidas_hoy, membresias, pagos_hoy, proximos_vencimientos]
+      properties:
+        fecha: { type: string, format: date, description: Hoy en America/Bogota. }
+        motos_dentro: { type: integer, minimum: 0 }
+        capacidad: { type: [integer, "null"], minimum: 1 }
+        estancias_largas:
+          type: integer
+          minimum: 0
+          description: Motos dentro desde hace más de 24 horas (CB-5).
+        entradas_hoy: { type: integer, minimum: 0 }
+        salidas_hoy: { type: integer, minimum: 0 }
+        membresias:
+          type: object
+          required: [activas, por_vencer, vencidas]
+          properties:
+            activas: { type: integer, minimum: 0 }
+            por_vencer: { type: integer, minimum: 0 }
+            vencidas: { type: integer, minimum: 0 }
+        pagos_hoy:
+          type: object
+          description: No incluye pagos anulados (RN-47).
+          required: [cantidad, total]
+          properties:
+            cantidad: { type: integer, minimum: 0 }
+            total: { type: integer, minimum: 0, description: COP. }
+        proximos_vencimientos:
+          type: array
+          description: Hasta 5 membresías `por_vencer` o `vencida`, por `fecha_vencimiento` ascendente.
+          maxItems: 5
+          items: { $ref: "#/components/schemas/Membresia" }
+
+    # ----------------------------------------------------- Notificaciones
+    Notificacion:
+      type: object
+      required: [id, membresia_id, cliente, tipo, canal, programada_para, estado, enviada_en, intentos, error, creado_en]
+      properties:
+        id: { type: string, format: uuid }
+        membresia_id: { type: string, format: uuid }
+        cliente: { $ref: "#/components/schemas/ClienteRef" }
+        tipo: { $ref: "#/components/schemas/TipoNotificacion" }
+        canal: { $ref: "#/components/schemas/CanalNotificacion" }
+        programada_para: { type: string, format: date }
+        estado: { $ref: "#/components/schemas/EstadoNotificacion" }
+        enviada_en: { type: [string, "null"], format: date-time }
+        intentos: { type: integer, minimum: 0, maximum: 3 }
+        error: { type: [string, "null"] }
+        creado_en: { type: string, format: date-time }
+
+    # ------------------------------------------------------ Configuración
+    Plantilla:
+      type: object
+      description: "Variables permitidas: `{nombre}`, `{plan}`, `{fecha_vencimiento}`, `{precio}`, `{parqueadero}` (RN-65)."
+      required: [asunto, cuerpo]
+      additionalProperties: false
+      properties:
+        asunto: { type: string, minLength: 3, maxLength: 120 }
+        cuerpo: { type: string, minLength: 10, maxLength: 2000 }
+
+    Configuracion:
+      type: object
+      required: [nombre_parqueadero, capacidad, dias_por_vencer, dias_recordatorio, plantillas, actualizado_en]
+      properties:
+        nombre_parqueadero: { type: string, minLength: 2, maxLength: 80 }
+        capacidad: { type: [integer, "null"], minimum: 1, maximum: 10000 }
+        dias_por_vencer:
+          type: integer
+          minimum: 0
+          maximum: 30
+          default: 3
+          description: RN-32.
+        dias_recordatorio:
+          type: array
+          description: Días antes del vencimiento en que se envía recordatorio; `0` es el mismo día (RN-60).
+          maxItems: 5
+          uniqueItems: true
+          items: { type: integer, minimum: 0, maximum: 30 }
+          default: [3, 1, 0]
+        plantillas:
+          type: object
+          required: [recordatorio, vencida]
+          additionalProperties: false
+          properties:
+            recordatorio: { $ref: "#/components/schemas/Plantilla" }
+            vencida: { $ref: "#/components/schemas/Plantilla" }
+        actualizado_en: { type: string, format: date-time }
+
+    ConfiguracionEditar:
+      type: object
+      minProperties: 1
+      additionalProperties: false
+      properties:
+        nombre_parqueadero: { type: string, minLength: 2, maxLength: 80 }
+        capacidad: { type: [integer, "null"], minimum: 1, maximum: 10000 }
+        dias_por_vencer: { type: integer, minimum: 0, maximum: 30 }
+        dias_recordatorio:
+          type: array
+          maxItems: 5
+          uniqueItems: true
+          items: { type: integer, minimum: 0, maximum: 30 }
+        plantillas:
+          type: object
+          minProperties: 1
+          additionalProperties: false
+          properties:
+            recordatorio: { $ref: "#/components/schemas/Plantilla" }
+            vencida: { $ref: "#/components/schemas/Plantilla" }
