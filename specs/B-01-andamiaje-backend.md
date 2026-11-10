@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 |---|---|
-| Estado | lista |
+| Estado | hecha |
 | Línea | B (fullstack) |
 | Asignado a | Sonnet |
 | Revisa | Opus |

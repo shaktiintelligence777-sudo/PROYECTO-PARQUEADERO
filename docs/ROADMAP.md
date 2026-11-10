@@ -352,9 +352,9 @@ Leyenda de estado: ⬜ por escribir · 📝 borrador · ✅ lista · 🔨 en con
 
 | ID | Módulo | Agente | Depende de | Estado |
 |---|---|---|---|---|
-| B-01 | Andamiaje backend: FastAPI, config, Docker, pytest, CI | Sonnet | F-05 | ✅ |
-| B-02 | Esquema de BD completo + migraciones Alembic + semilla | **Opus** | F-01, B-01 | ✅ |
-| B-03 | Autenticación: login, refresh rotativo, roles, rate limit, auditoría | **Opus** | B-02 | ✅ |
+| B-01 | Andamiaje backend: FastAPI, config, Docker, pytest, CI | Sonnet | F-05 | ✔️ |
+| B-02 | Esquema de BD completo + migraciones Alembic + semilla | **Opus** | F-01, B-01 | ✔️ |
+| B-03 | Autenticación: login, refresh rotativo, roles, rate limit, auditoría | **Opus** | B-02 | ✔️ |
 | B-04 | Accesos: entrada/salida, “dentro ahora”, historial | Sonnet | B-03 | ✅ |
 | B-05 | Clientes, motos y planes (CRUD) | Sonnet | B-03, B-04 | ✅ |
 | B-06 | Membresías y pagos: estados, extensión de vencimiento, reglas | **Opus** | B-05 | ✅ |
@@ -432,7 +432,7 @@ Un módulo está hecho cuando:
 
 Fable debe cerrarlas en la fase 0, con confirmación del dueño del proyecto.
 
-> **Estado (2026-11-10):** se adoptaron las propuestas por defecto de D-1 a D-7 y se añadieron D-8 a D-12. Todas están registradas en [`docs/dominio.md`](dominio.md#1-decisiones-cerradas) y siguen **pendientes de confirmación** del dueño del proyecto.
+> **Estado (2026-11-10):** se adoptaron las propuestas por defecto de D-1 a D-7 y se añadieron D-8 a D-12. Todas están registradas en [`docs/dominio.md`](dominio.md#1-decisiones-cerradas) y fueron **confirmadas por el dueño del proyecto** ese mismo día.
 
 | ID | Pregunta | Propuesta por defecto |
 |---|---|---|
