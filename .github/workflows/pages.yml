@@ -1,0 +1,48 @@
+name: Publicar demo en GitHub Pages
+
+on:
+  push:
+    branches: [main]
+    paths: ['frontend/**', 'contracts/**', '.github/workflows/pages.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  construir:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: frontend } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm, cache-dependency-path: frontend/package-lock.json }
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - name: Construir en modo demo
+        run: npm run build
+        env:
+          VITE_API_MODE: mock
+          VITE_BASE: /PROYECTO-PARQUEADERO/
+      - name: El demo no debe contener ninguna URL de backend (CA-6)
+        run: "! grep -rE 'VITE_API_URL|http://localhost:8000' dist"
+      - uses: actions/upload-pages-artifact@v3
+        with: { path: frontend/dist }
+
+  publicar:
+    needs: construir
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.despliegue.outputs.page_url }}
+    steps:
+      - id: despliegue
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,12 @@
+{
+  "name": "Parqueadero",
+  "short_name": "Parqueadero",
+  "description": "Gestión de un parqueadero de motos (demo con datos ficticios).",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "lang": "es",
+  "theme_color": "#151A23",
+  "background_color": "#F6F7F9",
+  "icons": [{ "src": "favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}

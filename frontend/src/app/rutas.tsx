@@ -1,4 +1,5 @@
 import { Link, Route, Routes } from 'react-router-dom';
+import { Galeria } from './Galeria';
 import { PaginaNoEncontrada } from './PaginaNoEncontrada';
 
 export interface RutaApp { ruta: string; pantalla: string; rol: 'publico' | 'todos' | 'admin' }
@@ -32,6 +33,7 @@ export function RutasApp() {
   return (
     <Routes>
       {RUTAS.map((r) => <Route key={r.ruta} path={r.ruta} element={<Provisional nombre={r.pantalla} />} />)}
+      {import.meta.env.DEV && <Route path="/galeria" element={<Galeria />} />}
       <Route path="*" element={<PaginaNoEncontrada />} />
     </Routes>
   );
