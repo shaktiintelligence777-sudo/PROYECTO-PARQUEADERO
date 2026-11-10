@@ -1,10 +1,13 @@
 import { Link, Route, Routes } from 'react-router-dom';
+import { PaginaLogin } from '@/features/auth/PaginaLogin';
+import { DisposicionApp } from './DisposicionApp';
+import { RutaProtegida } from './RutaProtegida';
 import { Galeria } from './Galeria';
 import { PaginaNoEncontrada } from './PaginaNoEncontrada';
 
 export interface RutaApp { ruta: string; pantalla: string; rol: 'publico' | 'todos' | 'admin' }
 
-/** Tabla de rutas de la spec A-01 §4.1. Las guardas de sesión y rol llegan en A-04. */
+/** Tabla de rutas de la spec A-01 §4.1. Las guardas de sesión y rol son de A-04. */
 export const RUTAS: RutaApp[] = [
   { ruta: '/login', pantalla: 'P1 Login', rol: 'publico' },
   { ruta: '/', pantalla: 'P2 Dashboard', rol: 'todos' },
@@ -21,20 +24,27 @@ export const RUTAS: RutaApp[] = [
 
 function Provisional({ nombre }: { nombre: string }) {
   return (
-    <main className="mx-auto max-w-[960px] p-4 md:p-6">
+    <section>
       <h1 className="text-titulo">{nombre}</h1>
       <p className="mt-2 text-apoyo text-asfalto-500">Página provisional.</p>
       <Link className="mt-4 inline-block text-info underline" to="/">Ir al inicio</Link>
-    </main>
+    </section>
   );
 }
 
 export function RutasApp() {
+  const protegidas = RUTAS.filter((r) => r.rol !== 'publico');
   return (
     <Routes>
-      {RUTAS.map((r) => <Route key={r.ruta} path={r.ruta} element={<Provisional nombre={r.pantalla} />} />)}
+      <Route path="/login" element={<PaginaLogin />} />
+      <Route element={<RutaProtegida><DisposicionApp /></RutaProtegida>}>
+        {protegidas.map((r) => {
+          const pagina = <Provisional nombre={r.pantalla} />;
+          return <Route key={r.ruta} path={r.ruta} element={r.rol === 'admin' ? <RutaProtegida roles={['admin']}>{pagina}</RutaProtegida> : pagina} />;
+        })}
+        <Route path="*" element={<PaginaNoEncontrada />} />
+      </Route>
       {import.meta.env.DEV && <Route path="/galeria" element={<Galeria />} />}
-      <Route path="*" element={<PaginaNoEncontrada />} />
     </Routes>
   );
 }

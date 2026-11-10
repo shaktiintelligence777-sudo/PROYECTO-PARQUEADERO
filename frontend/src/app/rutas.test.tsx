@@ -1,18 +1,33 @@
-import { render, screen } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
-import { describe, expect, it } from 'vitest';
-import { RutasApp, RUTAS } from './rutas';
+import { screen } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { fijarApi } from '@/api';
+import { crearEntorno, montar, type Entorno } from '@/test/montar';
+import { RUTAS } from './rutas';
 
-const ir = (ruta: string) => render(<MemoryRouter initialEntries={[ruta]}><RutasApp /></MemoryRouter>);
+let e: Entorno;
+beforeEach(async () => {
+  window.localStorage.clear();
+  window.sessionStorage.clear();
+  e = crearEntorno();
+  // Sesión de admin ya iniciada: el refresh guardado se restaura al montar.
+  const s = await e.api.login({ email: 'demo@parqueadero.app', password: 'demo1234' });
+  e.almacen.guardar(s.refresh_token);
+});
+afterEach(() => { fijarApi(null); });
 
 describe('ruteo', () => {
-  it.each(RUTAS.map((r) => [r.ruta, r.pantalla] as const))('CA-3 %s muestra %s', (ruta, pantalla) => {
-    ir(ruta.replace(':id', '123'));
-    expect(screen.getByRole('heading', { name: pantalla })).toBeInTheDocument();
+  it('CA-3 /login (sin sesión) muestra P1', async () => {
+    e.almacen.borrar();
+    montar('/login', e);
+    expect(await screen.findByRole('heading', { name: 'Parqueadero' })).toBeInTheDocument();
   });
-  it('CA-3 ruta desconocida', () => {
-    ir('/no-existe');
-    expect(screen.getByRole('heading', { name: 'Página no encontrada' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /inicio/i })).toHaveAttribute('href', '/');
+  it.each(RUTAS.filter((r) => r.rol !== 'publico').map((r) => [r.ruta, r.pantalla] as const))('CA-3 %s muestra %s', async (ruta, pantalla) => {
+    montar(ruta.replace(':id', '123'), e);
+    expect(await screen.findByRole('heading', { name: pantalla })).toBeInTheDocument();
+  });
+  it('CA-3 ruta desconocida', async () => {
+    montar('/no-existe', e);
+    expect(await screen.findByRole('heading', { name: 'Página no encontrada' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Volver al inicio' })).toHaveAttribute('href', '/');
   });
 });

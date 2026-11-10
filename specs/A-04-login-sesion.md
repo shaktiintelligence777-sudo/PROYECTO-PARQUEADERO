@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 |---|---|
-| Estado | lista |
+| Estado | en revisión |
 | Línea | A (demo) |
 | Asignado a | Sonnet |
 | Revisa | Opus |
@@ -70,19 +70,19 @@ Que el usuario pueda iniciar y cerrar sesión, que la sesión sobreviva a una re
 
 ## 5. Criterios de aceptación
 
-- [ ] **CA-1** Dado el login, cuando se envía vacío, entonces aparecen “Escribe tu email.” y “Escribe tu contraseña.” y no se llama a la API.
-- [ ] **CA-2** Dadas credenciales correctas de admin, cuando se envía, entonces se llega a `/`; con las de operador, a `/acceso`.
-- [ ] **CA-3** Dado `credenciales_invalidas`, cuando responde la API, entonces se muestra “Email o contraseña incorrectos.”, la contraseña queda vacía y con el foco, y el email se conserva.
-- [ ] **CA-4** Dado `demasiados_intentos`, entonces se muestra “Demasiados intentos. Espera unos minutos e inténtalo de nuevo.”
-- [ ] **CA-5** Dado un usuario sin sesión, cuando abre `/clientes`, entonces va a `/login` y, tras iniciar sesión, llega a `/clientes`.
-- [ ] **CA-6** Dado un operador, cuando abre `/configuracion` o `/historial`, entonces ve “No tienes permiso para ver esta página.”
-- [ ] **CA-7** Dada una sesión iniciada, cuando se recarga la página, entonces sigue autenticado sin pasar por el login.
-- [ ] **CA-8** Dadas tres llamadas simultáneas que reciben 401, cuando se resuelven, entonces `refrescarSesion` se llamó una sola vez y las tres devuelven datos.
-- [ ] **CA-9** Dado un refresh que falla, entonces se muestra el login con “Tu sesión venció. Inicia sesión otra vez.”
-- [ ] **CA-10** Dado “Cerrar sesión”, cuando se pulsa, entonces `sessionStorage` no tiene la clave de sesión, la caché de consultas está vacía y se muestra el login.
-- [ ] **CA-11** Dado el modo demo, cuando se pulsa “Usar estos datos”, entonces los campos se rellenan con el usuario de prueba y no se envía el formulario.
-- [ ] **CA-12** Dado un cambio de contraseña con confirmación distinta, entonces se muestra “Las contraseñas no coinciden.”; con `password_incorrecta`, “La contraseña actual no es correcta.”; si es correcto, se cierra la sesión con el mensaje de la regla 8.
-- [ ] **CA-13** Dada una sesión iniciada, cuando se inspecciona `localStorage`, entonces no contiene ningún token.
+- [x] **CA-1** Dado el login, cuando se envía vacío, entonces aparecen “Escribe tu email.” y “Escribe tu contraseña.” y no se llama a la API.
+- [x] **CA-2** Dadas credenciales correctas de admin, cuando se envía, entonces se llega a `/`; con las de operador, a `/acceso`.
+- [x] **CA-3** Dado `credenciales_invalidas`, cuando responde la API, entonces se muestra “Email o contraseña incorrectos.”, la contraseña queda vacía y con el foco, y el email se conserva.
+- [x] **CA-4** Dado `demasiados_intentos`, entonces se muestra “Demasiados intentos. Espera unos minutos e inténtalo de nuevo.”
+- [x] **CA-5** Dado un usuario sin sesión, cuando abre `/clientes`, entonces va a `/login` y, tras iniciar sesión, llega a `/clientes`.
+- [x] **CA-6** Dado un operador, cuando abre `/configuracion` o `/historial`, entonces ve “No tienes permiso para ver esta página.”
+- [x] **CA-7** Dada una sesión iniciada, cuando se recarga la página, entonces sigue autenticado sin pasar por el login.
+- [x] **CA-8** Dadas tres llamadas simultáneas que reciben 401, cuando se resuelven, entonces `refrescarSesion` se llamó una sola vez y las tres devuelven datos.
+- [x] **CA-9** Dado un refresh que falla, entonces se muestra el login con “Tu sesión venció. Inicia sesión otra vez.”
+- [x] **CA-10** Dado “Cerrar sesión”, cuando se pulsa, entonces `sessionStorage` no tiene la clave de sesión, la caché de consultas está vacía y se muestra el login.
+- [x] **CA-11** Dado el modo demo, cuando se pulsa “Usar estos datos”, entonces los campos se rellenan con el usuario de prueba y no se envía el formulario.
+- [x] **CA-12** Dado un cambio de contraseña con confirmación distinta, entonces se muestra “Las contraseñas no coinciden.”; con `password_incorrecta`, “La contraseña actual no es correcta.”; si es correcto, se cierra la sesión con el mensaje de la regla 8.
+- [x] **CA-13** Dada una sesión iniciada, cuando se inspecciona `localStorage`, entonces no contiene ningún token.
 
 ## 6. Pruebas requeridas
 
