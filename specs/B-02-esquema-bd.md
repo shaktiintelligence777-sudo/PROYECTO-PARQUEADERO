@@ -224,6 +224,8 @@ La migración inserta la fila `id = 1` con las plantillas por defecto de la secc
 
 Índice `(entidad, entidad_id)`.
 
+`auditoria` es de **solo inserción**: un trigger rechaza `UPDATE` y `DELETE` sobre la tabla.
+
 Todas las FK usan `ON DELETE RESTRICT`: nada se borra en cascada (D-12).
 
 ### 4.3 Reglas de negocio

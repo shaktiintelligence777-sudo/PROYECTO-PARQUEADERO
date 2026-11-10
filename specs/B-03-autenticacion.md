@@ -76,7 +76,7 @@ Tablas `usuarios`, `refresh_tokens`, `intentos_login` y `auditoria` de B-02. Sin
 3. **Límite de intentos (RN-75).** Antes de verificar la contraseña se cuentan los intentos fallidos de los últimos `LOGIN_VENTANA_MINUTOS`: si hay 5 o más para ese email, o 20 o más para esa IP, se responde `429 demasiados_intentos` con `Retry-After`, sin verificar nada. Un login correcto no borra los fallos de la IP, pero sí deja de contar los del email (solo cuentan los fallos posteriores al último acierto).
 4. **Sesión nueva.** Un login correcto crea un refresh token con `familia_id` nuevo y devuelve `Sesion` con `expires_in = JWT_MINUTOS_ACCESO × 60`.
 5. **Rotación (RN-72).** `/auth/refresh` con un token válido y sin usar: marca `usado_en`, crea otro con la **misma** `familia_id` y devuelve un par nuevo. La operación bloquea la fila (`SELECT … FOR UPDATE`) para que dos peticiones simultáneas no obtengan ambas un token nuevo.
-6. **Reutilización (CB-14).** `/auth/refresh` con un token que ya tiene `usado_en`: se revocan **todos** los refresh tokens del usuario, se audita `auth.refresh_reutilizado` y se responde `401 token_invalido`.
+6. **Reutilización (CB-14).** `/auth/refresh` con un token que ya tiene `usado_en`: se revocan **todos** los refresh tokens del usuario, se audita `auth.refresh_reutilizado` y se responde `401 token_invalido`. No hay margen de gracia: dos peticiones simultáneas con el mismo token cuentan como reutilización. Por eso el frontend comparte un único refresh entre llamadas concurrentes (A-04, regla 2) y guarda el token por pestaña.
 7. **Refresh inválido.** Desconocido, vencido, revocado o de un usuario inactivo: `401 token_invalido`.
 8. **Logout.** Marca `revocado_en` en el token recibido. Siempre responde 204.
 9. **Cambio de contraseña.** Verifica `password_actual` (`400 password_incorrecta` si falla), guarda el hash nuevo y revoca todos los refresh tokens del usuario.
@@ -87,7 +87,7 @@ Tablas `usuarios`, `refresh_tokens`, `intentos_login` y `auditoria` de B-02. Sin
 
 - Argon2id con los parámetros por defecto de `argon2-cffi` (`PasswordHasher()`).
 - Ni contraseñas ni tokens aparecen en logs, auditoría o mensajes de error.
-- `ip_cliente` toma la IP del primer valor de `X-Forwarded-For` solo si `ENTORNO=produccion` (detrás del proxy de Render); en otro caso usa la del socket.
+- `ip_cliente` toma la IP del primer valor de `X-Forwarded-For` solo si `ENTORNO=produccion` (detrás del proxy de Render); en otro caso usa la del socket. Si no se obtiene una IP válida se usa `0.0.0.0`.
 - `/auth/login`, `/auth/refresh` y `/auth/logout` son los únicos endpoints sin `usuario_actual`, junto con `/salud`.
 
 ## 5. Criterios de aceptación
