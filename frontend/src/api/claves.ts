@@ -1,0 +1,20 @@
+// Claves de caché de TanStack Query. La primera posición es el recurso que invalidan las mutaciones.
+export const claves = {
+  sesion: ['sesion'] as const,
+  usuarios: (f?: unknown) => ['usuarios', f ?? {}] as const,
+  clientes: (f?: unknown) => ['clientes', 'lista', f ?? {}] as const,
+  cliente: (id: string) => ['clientes', 'detalle', id] as const,
+  motos: (f?: unknown) => ['motos', f ?? {}] as const,
+  planes: (f?: unknown) => ['planes', f ?? {}] as const,
+  membresias: (f?: unknown) => ['membresias', 'lista', f ?? {}] as const,
+  membresia: (id: string) => ['membresias', 'detalle', id] as const,
+  pagos: (f?: unknown) => ['pagos', 'lista', f ?? {}] as const,
+  pagosDeMembresia: (id: string, f?: unknown) => ['pagos', 'membresia', id, f ?? {}] as const,
+  vistaPreviaPago: (d: unknown) => ['pagos', 'vista-previa', d] as const,
+  placa: (placa: string) => ['accesos', 'placa', placa] as const,
+  dentro: (f?: unknown) => ['accesos', 'dentro', f ?? {}] as const,
+  historial: (f?: unknown) => ['accesos', 'historial', f ?? {}] as const,
+  dashboard: ['dashboard'] as const,
+  notificaciones: (f?: unknown) => ['notificaciones', f ?? {}] as const,
+  configuracion: ['configuracion'] as const,
+};
