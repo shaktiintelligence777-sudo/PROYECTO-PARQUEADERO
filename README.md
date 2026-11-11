@@ -7,6 +7,7 @@ Aplicación web para un parqueadero de motos: membresías de clientes, notificac
 
 ## Documentación
 
+- [Guía completa en lenguaje sencillo (en inglés)](docs/GUIDE.md): qué hace la app, modo demo y modo real, diagramas de datos, tutorial paso a paso, alojamiento, base de datos y seguridad.
 - [Hoja de ruta y arquitectura](docs/ROADMAP.md): visión, arquitectura, modelo de datos, fases (demo y fullstack) y flujo de trabajo con agentes.
 - [Plantilla de especificación](specs/_PLANTILLA.md): formato que usan las specs de cada módulo.
 - [Dominio y reglas de negocio](docs/dominio.md): glosario, reglas `RN-xx`, permisos, casos borde y decisiones.
