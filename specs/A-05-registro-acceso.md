@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 |---|---|
-| Estado | lista |
+| Estado | en revisión |
 | Línea | A (demo) |
 | Asignado a | Sonnet |
 | Revisa | Fable |
@@ -61,20 +61,20 @@ Disponible para ambos roles. Sin datos sensibles.
 
 ## 5. Criterios de aceptación
 
-- [ ] **CA-1** Dada la pantalla recién abierta, entonces el campo de placa tiene el foco y “Buscar” está deshabilitado hasta escribir 4 caracteres.
-- [ ] **CA-2** Dada una moto fuera con membresía activa, cuando se busca `abc-12d`, entonces se muestra la placa `ABC12D`, el cliente, la insignia “Activa” y el botón “Registrar entrada”, sin avisos.
-- [ ] **CA-3** Dado ese resultado, cuando se pulsa “Registrar entrada”, entonces aparece el toast “Entrada registrada · ABC12D”, el campo queda vacío y con el foco, y el contador de “Dentro” aumenta en 1.
-- [ ] **CA-4** Dada una moto con membresía vencida, entonces se muestra el aviso “Membresía vencida. Puedes registrar la entrada y cobrar la renovación.”, el enlace “Registrar pago” y el botón “Registrar entrada de todos modos”, que funciona.
-- [ ] **CA-5** Dada una moto sin membresía, entonces se muestra “Este cliente no tiene membresía.” y el enlace “Crear membresía”.
-- [ ] **CA-6** Dada una moto por vencer, entonces se muestra “La membresía vence pronto.” y el botón normal “Registrar entrada”.
-- [ ] **CA-7** Dada una moto dentro, cuando se busca, entonces se muestra “Dentro desde las … (…)” y el botón “Registrar salida”; al pulsarlo aparece “Salida registrada · ABC12D · 2 h 15 min”.
-- [ ] **CA-8** Dada una placa inexistente `ZZZ99Z`, entonces se muestra “No hay ninguna moto con la placa ZZZ99Z.” y el botón lleva a `/clientes/nuevo?placa=ZZZ99Z`.
-- [ ] **CA-9** Dado que la entrada responde `moto_ya_dentro`, entonces se muestra el toast de error y el resultado pasa a ofrecer “Registrar salida”.
-- [ ] **CA-10** Dada la pestaña “Dentro” con motos, entonces están ordenadas de la más antigua a la más reciente y las de más de 24 horas llevan “Más de 24 h”.
-- [ ] **CA-11** Dada la pestaña “Dentro”, cuando se pulsa “Salida” y se confirma, entonces la moto desaparece de la lista; si se cancela, no cambia nada.
-- [ ] **CA-12** Dado el filtro por placa sin coincidencias, entonces se muestra “Ninguna moto dentro coincide con esa placa.”; sin motos dentro, “No hay motos dentro en este momento.”
-- [ ] **CA-13** Dado un ancho de 360 px, entonces no hay desplazamiento horizontal y el botón principal mide al menos 64 px de alto.
-- [ ] **CA-14** Dado el botón de entrada pulsado dos veces seguidas, entonces solo se envía una petición.
+- [x] **CA-1** Dada la pantalla recién abierta, entonces el campo de placa tiene el foco y “Buscar” está deshabilitado hasta escribir 4 caracteres.
+- [x] **CA-2** Dada una moto fuera con membresía activa, cuando se busca `abc-12d`, entonces se muestra la placa `ABC12D`, el cliente, la insignia “Activa” y el botón “Registrar entrada”, sin avisos.
+- [x] **CA-3** Dado ese resultado, cuando se pulsa “Registrar entrada”, entonces aparece el toast “Entrada registrada · ABC12D”, el campo queda vacío y con el foco, y el contador de “Dentro” aumenta en 1.
+- [x] **CA-4** Dada una moto con membresía vencida, entonces se muestra el aviso “Membresía vencida. Puedes registrar la entrada y cobrar la renovación.”, el enlace “Registrar pago” y el botón “Registrar entrada de todos modos”, que funciona.
+- [x] **CA-5** Dada una moto sin membresía, entonces se muestra “Este cliente no tiene membresía.” y el enlace “Crear membresía”.
+- [x] **CA-6** Dada una moto por vencer, entonces se muestra “La membresía vence pronto.” y el botón normal “Registrar entrada”.
+- [x] **CA-7** Dada una moto dentro, cuando se busca, entonces se muestra “Dentro desde las … (…)” y el botón “Registrar salida”; al pulsarlo aparece “Salida registrada · ABC12D · 2 h 15 min”.
+- [x] **CA-8** Dada una placa inexistente `ZZZ99Z`, entonces se muestra “No hay ninguna moto con la placa ZZZ99Z.” y el botón lleva a `/clientes/nuevo?placa=ZZZ99Z`.
+- [x] **CA-9** Dado que la entrada responde `moto_ya_dentro`, entonces se muestra el toast de error y el resultado pasa a ofrecer “Registrar salida”.
+- [x] **CA-10** Dada la pestaña “Dentro” con motos, entonces están ordenadas de la más antigua a la más reciente y las de más de 24 horas llevan “Más de 24 h”.
+- [x] **CA-11** Dada la pestaña “Dentro”, cuando se pulsa “Salida” y se confirma, entonces la moto desaparece de la lista; si se cancela, no cambia nada.
+- [x] **CA-12** Dado el filtro por placa sin coincidencias, entonces se muestra “Ninguna moto dentro coincide con esa placa.”; sin motos dentro, “No hay motos dentro en este momento.”
+- [x] **CA-13** Dado un ancho de 360 px, entonces no hay desplazamiento horizontal y el botón principal mide al menos 64 px de alto.
+- [x] **CA-14** Dado el botón de entrada pulsado dos veces seguidas, entonces solo se envía una petición.
 
 ## 6. Pruebas requeridas
 
@@ -86,4 +86,5 @@ Disponible para ambos roles. Sin datos sensibles.
 
 ## 8. Preguntas abiertas
 
-- …
+- El enlace “Crear membresía” del aviso “sin membresía” no tiene destino definido en `pantallas.md`: se lleva a la ficha del cliente (`/clientes/<id>`), donde está el botón que abre la hoja “Crear membresía” (P4). Confirmar si prefieren abrir la hoja directamente.
+- “Placa con formato inválido” (P3, paso 6) no puede ocurrir desde la interfaz: el campo normaliza y “Buscar” exige 4 caracteres. Solo se muestra si la API responde `validacion`.

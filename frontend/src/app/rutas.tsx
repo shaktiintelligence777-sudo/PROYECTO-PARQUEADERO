@@ -1,4 +1,5 @@
 import { Link, Route, Routes } from 'react-router-dom';
+import { PaginaAcceso } from '@/features/accesos/PaginaAcceso';
 import { PaginaLogin } from '@/features/auth/PaginaLogin';
 import { DisposicionApp } from './DisposicionApp';
 import { RutaProtegida } from './RutaProtegida';
@@ -39,7 +40,7 @@ export function RutasApp() {
       <Route path="/login" element={<PaginaLogin />} />
       <Route element={<RutaProtegida><DisposicionApp /></RutaProtegida>}>
         {protegidas.map((r) => {
-          const pagina = <Provisional nombre={r.pantalla} />;
+          const pagina = r.ruta === '/acceso' ? <PaginaAcceso /> : <Provisional nombre={r.pantalla} />;
           return <Route key={r.ruta} path={r.ruta} element={r.rol === 'admin' ? <RutaProtegida roles={['admin']}>{pagina}</RutaProtegida> : pagina} />;
         })}
         <Route path="*" element={<PaginaNoEncontrada />} />

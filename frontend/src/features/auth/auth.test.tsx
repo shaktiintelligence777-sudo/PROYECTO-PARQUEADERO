@@ -41,7 +41,7 @@ describe('login (A-04)', () => {
     montar('/login', e);
     await screen.findByRole('button', { name: 'Iniciar sesión' });
     await entrar(...OPERADOR);
-    expect(await screen.findByRole('heading', { name: 'P3 Registro de acceso' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Acceso' })).toBeInTheDocument();
   });
 
   it('CA-3 credenciales inválidas: mensaje, contraseña vacía con foco y email conservado', async () => {
@@ -92,7 +92,7 @@ describe('guardas y sesión (A-04)', () => {
     montar('/login', e);
     await screen.findByRole('button', { name: 'Iniciar sesión' });
     await entrar(...OPERADOR);
-    await screen.findByRole('heading', { name: 'P3 Registro de acceso' });
+    await screen.findByRole('heading', { name: 'Acceso' });
     // navegación interna: volvemos a montar en la ruta con la sesión ya iniciada
     const { unmount } = montar(ruta, e);
     expect(await screen.findByText('No tienes permiso para ver esta página.')).toBeInTheDocument();
