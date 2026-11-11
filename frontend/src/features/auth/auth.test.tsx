@@ -34,7 +34,7 @@ describe('login (A-04)', () => {
     montar('/login', e);
     await screen.findByRole('button', { name: 'Iniciar sesión' });
     await entrar(...ADMIN);
-    expect(await screen.findByRole('heading', { name: 'P2 Dashboard' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Inicio' })).toBeInTheDocument();
   });
 
   it('CA-2 operador llega a /acceso', async () => {
@@ -103,7 +103,7 @@ describe('guardas y sesión (A-04)', () => {
     const primero = montar('/login', e);
     await screen.findByRole('button', { name: 'Iniciar sesión' });
     await entrar(...ADMIN);
-    await screen.findByRole('heading', { name: 'P2 Dashboard' });
+    await screen.findByRole('heading', { name: 'Inicio' });
     primero.unmount();
     // "recarga": nueva API (sin token en memoria), mismos storages
     const e2 = crearEntorno();
@@ -124,7 +124,7 @@ describe('guardas y sesión (A-04)', () => {
     montar('/login', e);
     await screen.findByRole('button', { name: 'Iniciar sesión' });
     await entrar(...ADMIN);
-    await screen.findByRole('heading', { name: 'P2 Dashboard' });
+    await screen.findByRole('heading', { name: 'Inicio' });
     e.qc.setQueryData(['x'], 1);
     await userEvent.click(screen.getAllByRole('button', { name: 'Cerrar sesión' })[0]!);
     expect(await screen.findByRole('button', { name: 'Iniciar sesión' })).toBeInTheDocument();
@@ -136,7 +136,7 @@ describe('guardas y sesión (A-04)', () => {
     montar('/login', e);
     await screen.findByRole('button', { name: 'Iniciar sesión' });
     await entrar(...ADMIN);
-    await screen.findByRole('heading', { name: 'P2 Dashboard' });
+    await screen.findByRole('heading', { name: 'Inicio' });
     vi.spyOn(e.api, 'logout').mockRejectedValue(new Error('red'));
     await userEvent.click(screen.getAllByRole('button', { name: 'Cerrar sesión' })[0]!);
     expect(await screen.findByRole('button', { name: 'Iniciar sesión' })).toBeInTheDocument();
@@ -146,7 +146,7 @@ describe('guardas y sesión (A-04)', () => {
     montar('/login', e);
     await screen.findByRole('button', { name: 'Iniciar sesión' });
     await entrar(...ADMIN);
-    await screen.findByRole('heading', { name: 'P2 Dashboard' });
+    await screen.findByRole('heading', { name: 'Inicio' });
     const refresh = window.sessionStorage.getItem(CLAVE_REFRESH)!;
     expect(refresh).toBeTruthy();
     for (let i = 0; i < window.localStorage.length; i++) {
@@ -162,7 +162,7 @@ describe('cambiar contraseña (A-04)', () => {
     montar('/login', e);
     await screen.findByRole('button', { name: 'Iniciar sesión' });
     await entrar(...ADMIN);
-    await screen.findByRole('heading', { name: 'P2 Dashboard' });
+    await screen.findByRole('heading', { name: 'Inicio' });
     await userEvent.click(screen.getByRole('button', { name: 'Cambiar contraseña' }));
     return screen.getByRole('dialog');
   }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  formatoDiasRestantes, formatoDinero, formatoDuracion, formatoFecha, formatoFechaHora, formatoHora, normalizarPlaca,
+  formatoDiasRestantes, formatoDinero, formatoDuracion, formatoFecha, formatoFechaCorta, formatoFechaHora, formatoHora, normalizarPlaca,
 } from './formato';
 
 describe('formato', () => {
@@ -27,4 +27,9 @@ describe('formato', () => {
     expect(formatoDuracion(1620)).toBe('1 d 3 h');
   });
   it('CA-9 placa', () => expect(normalizarPlaca('abc-12 d')).toBe('ABC12D'));
+
+  it('formatoFechaCorta: día de la semana, día y mes', () => {
+    expect(formatoFechaCorta('2026-11-10')).toBe('mar 10 nov');
+    expect(formatoFechaCorta('2026-11-09')).toBe('lun 9 nov');
+  });
 });

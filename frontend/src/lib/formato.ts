@@ -13,6 +13,15 @@ export function formatoFecha(fecha: string): string {
   return `${dia} ${MESES[(mes ?? 1) - 1]} ${anio}`;
 }
 
+const DIAS_SEMANA = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
+
+/** "2026-11-10" → "lun 10 nov" (para el saludo del dashboard). */
+export function formatoFechaCorta(fecha: string): string {
+  const [anio, mes, dia] = fecha.slice(0, 10).split('-').map(Number) as [number, number, number];
+  const diaSemana = new Date(Date.UTC(anio, mes - 1, dia)).getUTCDay();
+  return `${DIAS_SEMANA[diaSemana]} ${dia} ${MESES[mes - 1]}`;
+}
+
 function partes(iso: string) {
   const f = new Intl.DateTimeFormat('es-CO', {
     timeZone: ZONA, day: 'numeric', month: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true,

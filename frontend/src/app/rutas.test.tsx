@@ -4,7 +4,7 @@ import { fijarApi } from '@/api';
 import { crearEntorno, montar, type Entorno } from '@/test/montar';
 import { RUTAS } from './rutas';
 
-const TITULOS: Record<string, string> = { '/acceso': 'Acceso', '/clientes': 'Clientes', '/clientes/nuevo': 'Nuevo cliente', '/clientes/:id': 'Cliente', '/membresias': 'Membresías', '/pagos': 'Pagos', '/pagos/nuevo': 'Registrar pago' };
+const TITULOS: Record<string, string> = { '/': 'Inicio', '/acceso': 'Acceso', '/clientes': 'Clientes', '/clientes/nuevo': 'Nuevo cliente', '/clientes/:id': 'Cliente', '/membresias': 'Membresías', '/pagos': 'Pagos', '/pagos/nuevo': 'Registrar pago' };
 
 let e: Entorno;
 beforeEach(async () => {
