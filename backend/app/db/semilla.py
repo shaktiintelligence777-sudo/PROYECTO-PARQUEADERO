@@ -33,18 +33,11 @@ from app.modules.planes.models import Plan
 
 PASSWORD_DEMO = "demo1234"  # noqa: S105 - credencial pública del demo (D-11), nunca en producción
 
-TABLAS = (
-    "auditoria",
-    "notificaciones",
-    "pagos",
-    "estancias",
-    "membresias",
-    "motos",
-    "clientes",
-    "planes",
-    "refresh_tokens",
-    "intentos_login",
-    "usuarios",
+# Todas las tablas excepto `configuracion`, como sentencia literal: no se construye SQL con
+# cadenas ni siquiera a partir de constantes (C-03, CA-5).
+SQL_VACIAR = text(
+    "TRUNCATE auditoria, notificaciones, pagos, estancias, membresias, motos, clientes, planes,"
+    " refresh_tokens, intentos_login, usuarios RESTART IDENTITY CASCADE"
 )
 
 
@@ -251,7 +244,7 @@ async def _membresia(
 async def reiniciar(sesion: AsyncSession) -> None:
     """Vacía todas las tablas excepto `configuracion`. TRUNCATE no dispara el trigger de
     `auditoria` (que bloquea UPDATE y DELETE fila a fila)."""
-    await sesion.execute(text(f"TRUNCATE {', '.join(TABLAS)} RESTART IDENTITY CASCADE"))
+    await sesion.execute(SQL_VACIAR)
     await sesion.commit()
 
 
