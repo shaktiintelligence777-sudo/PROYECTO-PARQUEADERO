@@ -85,7 +85,7 @@ describe('guardas y sesión (A-04)', () => {
     montar('/clientes', e);
     await screen.findByRole('button', { name: 'Iniciar sesión' });
     await entrar(...ADMIN);
-    expect(await screen.findByRole('heading', { name: 'P4 Lista de clientes' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Clientes' })).toBeInTheDocument();
   });
 
   it.each(['/configuracion', '/historial'])('CA-6 operador en %s ve sin permiso', async (ruta) => {
@@ -110,7 +110,7 @@ describe('guardas y sesión (A-04)', () => {
     montar('/clientes', e2);
     expect(screen.getByRole('status', { name: 'Cargando' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Iniciar sesión' })).not.toBeInTheDocument();
-    expect(await screen.findByRole('heading', { name: 'P4 Lista de clientes' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Clientes' })).toBeInTheDocument();
   });
 
   it('CA-9 un refresh que falla muestra el login con sesión vencida', async () => {
