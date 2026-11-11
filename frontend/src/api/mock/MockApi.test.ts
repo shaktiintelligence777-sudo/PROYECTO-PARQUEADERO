@@ -318,4 +318,12 @@ describe('A-02 · MockApi', () => {
     expect(c).toMatchObject({ capacidad: null, dias_por_vencer: 5 });
     expect((await api.listarMembresias({ estado: 'por_vencer' })).total).toBeGreaterThanOrEqual(2);
   });
+
+  it('listarMembresias sin filtro excluye las canceladas; con estado=cancelada solo ellas', async () => {
+    const todas = await api.listarMembresias({ por_pagina: 100 });
+    expect(todas.items.some((m) => m.estado === 'cancelada')).toBe(false);
+    const canceladas = await api.listarMembresias({ estado: 'cancelada' });
+    expect(canceladas.total).toBeGreaterThan(0);
+    expect(canceladas.items.every((m) => m.estado === 'cancelada')).toBe(true);
+  });
 });
