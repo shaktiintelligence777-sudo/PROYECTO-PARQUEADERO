@@ -43,6 +43,10 @@ export type MotivoEntrada = Esq['MotivoEntrada'];
 export type LoginEntrada = Esq['LoginEntrada'];
 export type RefreshEntrada = Esq['RefreshEntrada'];
 export type AccesoEntrada = Esq['AccesoEntrada'];
+/** Solo demo: entrada de un visitante casual (cliente por día). Aún no existe en `contracts/openapi.yaml`. */
+export interface VisitanteCasualEntrada { placa: string; marca: string; color: string; nombre?: string }
+/** Convención del demo: un visitante casual llega con `cliente.documento` vacío. */
+export const esVisitanteCasual = (e: { cliente: { documento: string } }): boolean => e.cliente.documento === '';
 
 export type Pagina<T> = Esq['Paginacion'] & { items: T[] };
 export interface Lista<T> { items: T[] }
@@ -118,6 +122,8 @@ export interface ApiClient {
 
   consultarPlaca(placa: string): Promise<ConsultaPlaca>;
   registrarEntrada(datos: AccesoEntrada): Promise<AccesoRegistrado>;
+  /** Solo demo (modo `live` aún no lo soporta). */
+  registrarEntradaCasual(datos: VisitanteCasualEntrada): Promise<AccesoRegistrado>;
   registrarSalida(datos: AccesoEntrada): Promise<AccesoRegistrado>;
   listarMotosDentro(filtros?: { placa?: string }): Promise<{ items: Estancia[]; total: number; capacidad: number | null }>;
   listarHistorialAccesos(filtros?: FiltrosHistorial): Promise<Pagina<Estancia>>;

@@ -14,8 +14,12 @@ export interface FilaPago {
   periodo_desde: string; periodo_hasta: string; nota: string | null; registrado_por: string; creado_en: string;
   vencimiento_anterior: string; anulado: boolean; anulado_en: string | null; anulado_por: string | null; motivo_anulacion: string | null;
 }
+/** Datos de un visitante casual (cliente por día, sin membresía ni moto registrada). */
+export interface FilaVisitante { placa: string; marca: string; color: string; nombre: string | null }
 export interface FilaEstancia {
   id: string; moto_id: string; entrada_en: string; salida_en: string | null; operador_entrada: string; operador_salida: string | null;
+  /** Solo en estancias de visitantes casuales; en ellas `moto_id` queda vacío. */
+  visitante?: FilaVisitante;
 }
 export interface FilaNotificacion {
   id: string; membresia_id: string; tipo: 'recordatorio' | 'vencida'; canal: 'email' | 'whatsapp'; programada_para: string;
