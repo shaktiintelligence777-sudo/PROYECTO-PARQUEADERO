@@ -1,4 +1,4 @@
-name: Publicar demo en GitHub Pages
+name: Publicar frontend en GitHub Pages
 
 on:
   push:
@@ -27,13 +27,24 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test
-      - name: Construir en modo demo
+      # C-01: el modo y la URL salen de las variables del repositorio (Settings → Variables → Actions).
+      # Mientras el dueño no defina API_MODE=live y API_URL, se sigue publicando el demo.
+      - name: Construir
         run: npm run build
         env:
-          VITE_API_MODE: mock
+          VITE_API_MODE: ${{ vars.API_MODE || 'mock' }}
+          VITE_API_URL: ${{ vars.API_URL }}
           VITE_BASE: /PROYECTO-PARQUEADERO/
-      - name: El demo no debe contener ninguna URL de backend (CA-6)
+      - name: El demo no debe contener ninguna URL de backend (A-09 CA-6)
+        if: ${{ (vars.API_MODE || 'mock') == 'mock' }}
         run: "! grep -rE 'VITE_API_URL|http://localhost:8000' dist"
+      - name: El build live no debe incluir el demo ni sus credenciales (C-01 CA-10)
+        if: ${{ vars.API_MODE == 'live' }}
+        run: |
+          test -n "$API_URL" || { echo "::error::Falta la variable API_URL del repositorio."; exit 1; }
+          ! grep -rlE 'demo1234|demo@parqueadero\.app' dist
+        env:
+          API_URL: ${{ vars.API_URL }}
       - uses: actions/upload-pages-artifact@v3
         with: { path: frontend/dist }
 

@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 |---|---|
-| Estado | en revisión |
+| Estado | hecha |
 | Línea | B (fullstack) |
 | Asignado a | Opus |
 | Revisa | Fable |

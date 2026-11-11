@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { ErrorApi } from '@/api';
-import { entorno } from '@/lib/entorno';
+import { DEMO_EN_BUILD, entorno } from '@/lib/entorno';
 import { Aviso, Boton, Campo, Entrada, Placa } from '@/ui';
 import { CampoPassword } from './CampoPassword';
 import { useSesion } from './ProveedorSesion';
@@ -83,7 +83,7 @@ export function PaginaLogin() {
           {errorApi && <Aviso tono="peligro">{errorApi}</Aviso>}
           <Boton type="submit" tamano="lg" anchoCompleto cargando={enviando}>Iniciar sesión</Boton>
         </form>
-        {entorno.modo === 'mock' && (
+        {DEMO_EN_BUILD && entorno.modo === 'mock' && (
           <Aviso tono="info" className="mt-6" titulo="Usuario de prueba:">
             <p>{EMAIL_DEMO}</p>
             <p>Contraseña: {PASSWORD_DEMO}</p>
