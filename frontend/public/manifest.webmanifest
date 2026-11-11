@@ -1,6 +1,6 @@
 {
-  "name": "Parqueadero",
-  "short_name": "Parqueadero",
+  "name": "Parqueadero Las Bermúdez",
+  "short_name": "Parqueadero Las Bermúdez",
   "description": "Gestión de un parqueadero de motos (demo con datos ficticios).",
   "start_url": "./",
   "scope": "./",
