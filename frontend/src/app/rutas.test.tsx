@@ -4,6 +4,8 @@ import { fijarApi } from '@/api';
 import { crearEntorno, montar, type Entorno } from '@/test/montar';
 import { RUTAS } from './rutas';
 
+const TITULOS: Record<string, string> = { '/acceso': 'Acceso', '/clientes': 'Clientes', '/clientes/nuevo': 'Nuevo cliente', '/clientes/:id': 'Cliente' };
+
 let e: Entorno;
 beforeEach(async () => {
   window.localStorage.clear();
@@ -23,8 +25,8 @@ describe('ruteo', () => {
   });
   it.each(RUTAS.filter((r) => r.rol !== 'publico').map((r) => [r.ruta, r.pantalla] as const))('CA-3 %s muestra %s', async (ruta, pantalla) => {
     montar(ruta.replace(':id', '123'), e);
-    // P3 ya es la pantalla real (A-05): su título es "Acceso".
-    const titulo = ruta === '/acceso' ? 'Acceso' : pantalla;
+    // Las pantallas ya construidas tienen su propio título (la ficha con un id inexistente muestra "Cliente").
+    const titulo = TITULOS[ruta] ?? pantalla;
     expect(await screen.findByRole('heading', { name: titulo })).toBeInTheDocument();
   });
   it('CA-3 ruta desconocida', async () => {

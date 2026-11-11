@@ -1,5 +1,8 @@
 import { Link, Route, Routes } from 'react-router-dom';
 import { PaginaAcceso } from '@/features/accesos/PaginaAcceso';
+import { PaginaCliente } from '@/features/clientes/PaginaCliente';
+import { PaginaClientes } from '@/features/clientes/PaginaClientes';
+import { PaginaNuevoCliente } from '@/features/clientes/PaginaNuevoCliente';
 import { PaginaLogin } from '@/features/auth/PaginaLogin';
 import { DisposicionApp } from './DisposicionApp';
 import { RutaProtegida } from './RutaProtegida';
@@ -33,6 +36,14 @@ function Provisional({ nombre }: { nombre: string }) {
   );
 }
 
+/** Pantallas ya construidas; el resto muestra la página provisional. */
+const PAGINAS: Record<string, JSX.Element> = {
+  '/acceso': <PaginaAcceso />,
+  '/clientes': <PaginaClientes />,
+  '/clientes/nuevo': <PaginaNuevoCliente />,
+  '/clientes/:id': <PaginaCliente />,
+};
+
 export function RutasApp() {
   const protegidas = RUTAS.filter((r) => r.rol !== 'publico');
   return (
@@ -40,7 +51,7 @@ export function RutasApp() {
       <Route path="/login" element={<PaginaLogin />} />
       <Route element={<RutaProtegida><DisposicionApp /></RutaProtegida>}>
         {protegidas.map((r) => {
-          const pagina = r.ruta === '/acceso' ? <PaginaAcceso /> : <Provisional nombre={r.pantalla} />;
+          const pagina = PAGINAS[r.ruta] ?? <Provisional nombre={r.pantalla} />;
           return <Route key={r.ruta} path={r.ruta} element={r.rol === 'admin' ? <RutaProtegida roles={['admin']}>{pagina}</RutaProtegida> : pagina} />;
         })}
         <Route path="*" element={<PaginaNoEncontrada />} />
