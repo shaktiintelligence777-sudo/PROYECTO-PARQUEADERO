@@ -337,3 +337,39 @@ describe('A-02 · MockApi', () => {
     expect(canceladas.items.every((m) => m.estado === 'cancelada')).toBe(true);
   });
 });
+
+describe('visitante casual', () => {
+  beforeEach(async () => { await entrar(EMAIL_OPERADOR); });
+
+  it('registra entrada sin cliente ni moto, sin membresía ni advertencias, y cuenta en el tablero', async () => {
+    const antes = (await api.resumenDashboard()).motos_dentro;
+    const r = await api.registrarEntradaCasual({ placa: 'qwe-12r', marca: 'Yamaha', color: 'Azul' });
+    expect(r.membresia).toBeNull();
+    expect(r.advertencias).toEqual([]);
+    expect(r.estancia.moto.placa).toBe('QWE12R');
+    expect(r.estancia.cliente.nombre).toBe('Visitante casual');
+    expect((await api.resumenDashboard()).motos_dentro).toBe(antes + 1);
+    expect((await api.listarMotosDentro({ placa: 'QWE' })).items).toHaveLength(1);
+    expect((await api.listarClientes()).items.some((c) => c.nombre === 'Visitante casual')).toBe(false);
+  });
+
+  it('exige marca y color; el nombre es opcional', async () => {
+    await falla(api.registrarEntradaCasual({ placa: 'QWE12R', marca: '', color: '' }), 422, 'validacion');
+    const r = await api.registrarEntradaCasual({ placa: 'QWE12R', marca: 'Yamaha', color: 'Azul', nombre: ' Ana ' });
+    expect(r.estancia.cliente.nombre).toBe('Ana');
+  });
+
+  it('consulta y salida por placa; la misma placa puede volver otro día', async () => {
+    await api.registrarEntradaCasual({ placa: 'QWE12R', marca: 'Yamaha', color: 'Azul' });
+    await falla(api.registrarEntradaCasual({ placa: 'QWE12R', marca: 'Yamaha', color: 'Azul' }), 409, 'moto_ya_dentro');
+    expect((await api.consultarPlaca('QWE12R')).estancia_abierta).not.toBeNull();
+    const s = await api.registrarSalida({ placa: 'QWE12R' });
+    expect(s.estancia.salida_en).not.toBeNull();
+    await falla(api.consultarPlaca('QWE12R'), 404, 'moto_no_registrada');
+    await api.registrarEntradaCasual({ placa: 'QWE12R', marca: 'Yamaha', color: 'Azul' });
+  });
+
+  it('rechaza una placa que ya pertenece a una moto registrada', async () => {
+    await falla(api.registrarEntradaCasual({ placa: 'XYZ34E', marca: 'Honda', color: 'Rojo' }), 409, 'placa_duplicada');
+  });
+});

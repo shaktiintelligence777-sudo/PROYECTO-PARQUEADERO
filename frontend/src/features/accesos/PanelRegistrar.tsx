@@ -5,6 +5,7 @@ import { ErrorApi } from '@/api';
 import { useConsultaPlaca, useRegistrarEntrada, useRegistrarSalida } from '@/api/hooks';
 import { formatoDuracion } from '@/lib/formato';
 import { Boton, Campo, EntradaPlaca, EstadoError, EstadoVacio, Esqueleto, useToast } from '@/ui';
+import { FormularioVisitante } from './FormularioVisitante';
 import { ResultadoConsulta } from './ResultadoConsulta';
 
 const MENSAJE_FORMATO = 'La placa debe tener entre 4 y 7 letras o números.';
@@ -15,6 +16,7 @@ export function PanelRegistrar() {
   const { mostrar } = useToast();
   const [placa, setPlaca] = useState('');
   const [buscada, setBuscada] = useState('');
+  const [casual, setCasual] = useState(false);
   const ref = useRef<HTMLInputElement>(null);
   const enCurso = useRef(false);
 
@@ -27,12 +29,14 @@ export function PanelRegistrar() {
   const buscar = (e?: FormEvent) => {
     e?.preventDefault();
     if (placa.length < 4) return;
+    setCasual(false);
     if (placa === buscada) void consulta.refetch(); else setBuscada(placa);
   };
 
   const terminar = () => {
     setPlaca('');
     setBuscada('');
+    setCasual(false);
     ref.current?.focus();
   };
 
@@ -81,12 +85,18 @@ export function PanelRegistrar() {
           alSalida={() => void registrar('salida')}
         />
       )}
-      {noRegistrada && (
+      {noRegistrada && !casual && (
         <EstadoVacio
           titulo={`No hay ninguna moto con la placa ${buscada}.`}
-          accion={<Link to={`/clientes/nuevo?placa=${buscada}`} className="inline-flex h-11 items-center rounded-control bg-senal-400 px-4 font-semibold text-asfalto-900">Registrar cliente nuevo</Link>}
+          accion={
+            <div className="flex w-full flex-col gap-3 sm:flex-row">
+              <Link to={`/clientes/nuevo?placa=${buscada}`} className="inline-flex h-16 flex-1 items-center justify-center rounded-control bg-senal-400 px-6 text-subtitulo font-semibold text-asfalto-900 hover:bg-senal-500">Registrar cliente nuevo</Link>
+              <Boton variante="primario" tamano="xl" className="flex-1" onClick={() => setCasual(true)}>Visitante casual</Boton>
+            </div>
+          }
         />
       )}
+      {noRegistrada && casual && <FormularioVisitante placa={buscada} alTerminar={terminar} alCancelar={() => setCasual(false)} />}
       {error && !noRegistrada && (
         <EstadoError
           mensaje={error instanceof ErrorApi && error.codigo === 'validacion' ? MENSAJE_FORMATO : 'No pudimos consultar la placa.'}

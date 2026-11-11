@@ -1,8 +1,8 @@
 import { LogIn, LogOut } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import type { ConsultaPlaca } from '@/api';
+import { esVisitanteCasual, type ConsultaPlaca } from '@/api';
 import { formatoDuracion, formatoHora } from '@/lib/formato';
-import { Aviso, Boton, InsigniaEstado, Placa, Tarjeta } from '@/ui';
+import { Aviso, Boton, Insignia, InsigniaEstado, Placa, Tarjeta } from '@/ui';
 
 export interface ResultadoConsultaProps {
   consulta: ConsultaPlaca;
@@ -17,6 +17,7 @@ export function ResultadoConsulta({ consulta, registrando, alEntrada, alSalida }
   const vencida = advertencias.includes('membresia_vencida');
   const sinMembresia = advertencias.includes('sin_membresia');
   const porVencer = advertencias.includes('membresia_por_vencer');
+  const casual = esVisitanteCasual({ cliente });
   const detalleMoto = [moto.marca, moto.color].filter(Boolean).join(' · ');
 
   return (
@@ -26,7 +27,7 @@ export function ResultadoConsulta({ consulta, registrando, alEntrada, alSalida }
         {detalleMoto && <span className="text-cuerpo text-asfalto-700">{detalleMoto}</span>}
       </div>
       <p className="text-subtitulo text-asfalto-900">{cliente.nombre}</p>
-      <InsigniaEstado estado={membresia?.estado ?? null} diasRestantes={membresia?.dias_restantes} />
+      {casual ? <Insignia tono="info">Visitante casual</Insignia> : <InsigniaEstado estado={membresia?.estado ?? null} diasRestantes={membresia?.dias_restantes} />}
 
       {dentro ? (
         <Aviso tono="info">Dentro desde las {formatoHora(dentro.entrada_en)} ({formatoDuracion(dentro.duracion_minutos)}).</Aviso>
@@ -58,7 +59,7 @@ export function ResultadoConsulta({ consulta, registrando, alEntrada, alSalida }
           {vencida || sinMembresia ? 'Registrar entrada de todos modos' : 'Registrar entrada'}
         </Boton>
       )}
-      <Link to={`/clientes/${cliente.id}`} className="block text-center text-cuerpo text-info underline">Ver cliente</Link>
+      {!casual && <Link to={`/clientes/${cliente.id}`} className="block text-center text-cuerpo text-info underline">Ver cliente</Link>}
     </Tarjeta>
   );
 }

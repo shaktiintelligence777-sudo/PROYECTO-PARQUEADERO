@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { obtenerApi } from '../index';
 import type {
-  AccesoEntrada, ClienteCrear, ClienteEditar, ConfiguracionEditar, MembresiaCrear, MotivoEntrada, MotoCrear, MotoEditar, PagoCrear,
+  AccesoEntrada, VisitanteCasualEntrada, ClienteCrear, ClienteEditar, ConfiguracionEditar, MembresiaCrear, MotivoEntrada, MotoCrear, MotoEditar, PagoCrear,
   PlanCrear, PlanEditar, UsuarioCrear, UsuarioEditar,
 } from '../client';
 
@@ -20,6 +20,7 @@ function mutacion<V, R>(fn: (v: V) => Promise<R>, recursos: string[]) {
 const api = obtenerApi;
 
 export const useRegistrarEntrada = mutacion((d: AccesoEntrada) => api().registrarEntrada(d), ['accesos', 'dashboard', 'motos']);
+export const useRegistrarEntradaCasual = mutacion((d: VisitanteCasualEntrada) => api().registrarEntradaCasual(d), ['accesos', 'dashboard', 'motos']);
 export const useRegistrarSalida = mutacion((d: AccesoEntrada) => api().registrarSalida(d), ['accesos', 'dashboard', 'motos']);
 
 export const useCrearCliente = mutacion((d: ClienteCrear) => api().crearCliente(d), ['clientes', 'motos']);
