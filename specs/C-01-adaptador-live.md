@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 |---|---|
-| Estado | lista |
+| Estado | en revisión |
 | Línea | C (convergencia) |
 | Asignado a | Opus |
 | Revisa | Fable |
@@ -90,4 +90,11 @@ Ninguno propio. Los tokens los gestiona `conSesion` (A-04).
 
 ## 8. Preguntas abiertas
 
-- …
+- **Archivos fuera del alcance (para Fable).** Para cumplir CA-9, CA-10 y la regla 8 sin tocar el aspecto de ninguna pantalla hice cambios mínimos fuera de la lista:
+  - `src/main.tsx` y el nuevo `src/app/ErrorConfiguracion.tsx` (usa `EstadoError` de `ui/`) muestran el aviso de configuración en lugar de la app (CA-9).
+  - `src/app/App.tsx` aplica la política de reintentos: las lecturas reintentan una vez solo con `status: 0` y las mutaciones nunca (regla 8).
+  - `src/app/ConexionBannerDemo.tsx` ya no importa `MockApi` de forma estática; reinicia el demo con `reiniciarDemo()` de `src/api/index.ts` (CA-10).
+  - `src/features/auth/PaginaLogin.tsx`: el aviso con las credenciales del demo depende además de `DEMO_EN_BUILD`, una constante que Vite resuelve al compilar, para que `demo1234` no quede en el paquete live (CA-10). La pantalla se ve igual en los dos modos.
+- **`msw`.** Las pruebas simulan `fetch` con `vi.fn` inyectado en `crearHttp`, sin añadir dependencias (`package.json` no está en el alcance).
+- **CA-11 en CI.** `src/api/live/integracion.test.ts` recorre login, entrada, salida, alta de cliente, alta de membresía y pagos contra un backend real; solo corre si se define `C01_API_URL`. Pasó contra el backend local con la semilla. Conectarlo a CI requiere tocar `.github/workflows/ci.yml`, fuera del alcance.
+- **Diferencias backend/contrato.** No apareció ninguna en el recorrido.

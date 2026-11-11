@@ -1,6 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { obtenerApi } from '@/api';
-import { MockApi } from '@/api/mock/MockApi';
+import { reiniciarDemo } from '@/api';
 import { entorno, type ModoApi } from '@/lib/entorno';
 import { BannerDemo } from '@/ui';
 
@@ -12,9 +11,7 @@ export function ConexionBannerDemo({ modo = entorno.modo }: { modo?: ModoApi }) 
   const qc = useQueryClient();
   if (modo !== 'mock') return null;
   const reiniciar = () => {
-    const api = obtenerApi();
-    if (api instanceof MockApi) api.reiniciarDemo();
-    void qc.resetQueries();
+    void reiniciarDemo().then(() => qc.resetQueries());
   };
   return <BannerDemo alReiniciar={reiniciar} />;
 }
