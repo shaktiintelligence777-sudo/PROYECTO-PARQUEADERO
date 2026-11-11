@@ -38,7 +38,7 @@ export function Armazon({ usuario, alCerrarSesion, alCambiarPassword, children }
     <div className="min-h-screen bg-asfalto-50 text-asfalto-900">
       {/* Escritorio: barra lateral de 240 px */}
       <nav aria-label="Navegación lateral" className="fixed inset-y-0 left-0 hidden w-60 flex-col bg-asfalto-900 p-4 text-blanco md:flex">
-        <span className="mb-6 text-subtitulo">Parqueadero</span>
+        <span className="mb-6 text-subtitulo">Parqueadero Las Bermúdez</span>
         <ul className="flex flex-1 flex-col gap-1">
           {visibles.map((d) => (
             <li key={d.ruta}>
@@ -69,7 +69,7 @@ export function Armazon({ usuario, alCerrarSesion, alCambiarPassword, children }
 
       {/* Móvil: cabecera de 56 px */}
       <header className="flex h-14 items-center justify-between bg-asfalto-900 px-4 text-blanco md:hidden">
-        <span className="text-subtitulo">Parqueadero</span>
+        <span className="min-w-0 truncate text-subtitulo">Parqueadero Las Bermúdez</span>
         <span className="truncate text-apoyo">{usuario.nombre}</span>
       </header>
 

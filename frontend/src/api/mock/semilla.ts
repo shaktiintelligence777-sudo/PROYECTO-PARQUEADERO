@@ -145,7 +145,7 @@ export function crearSemilla(reloj: Reloj): Db {
     ],
     clientes, motos, planes, membresias, pagos, estancias, notificaciones,
     configuracion: {
-      nombre_parqueadero: 'Parqueadero Demo', capacidad: 40, dias_por_vencer: 3, dias_recordatorio: [3, 1, 0],
+      nombre_parqueadero: 'Parqueadero Las Bermúdez', capacidad: 40, dias_por_vencer: 3, dias_recordatorio: [3, 1, 0],
       plantillas: {
         recordatorio: {
           asunto: 'Tu membresía vence el {fecha_vencimiento}',

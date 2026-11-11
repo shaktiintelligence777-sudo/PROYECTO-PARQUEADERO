@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ErrorApi, type Estancia } from '@/api';
+import { ErrorApi, esVisitanteCasual, type Estancia } from '@/api';
 import { useMotosDentro, useRegistrarSalida } from '@/api/hooks';
 import { formatoDuracion, formatoHora } from '@/lib/formato';
 import { Boton, Buscador, DialogoConfirmar, Elemento, EstadoError, EstadoVacio, Esqueleto, Insignia, ListaElementos, Placa, useToast } from '@/ui';
@@ -51,6 +51,7 @@ export function PanelDentro() {
               subtitulo={`Desde las ${formatoHora(e.entrada_en)} · ${formatoDuracion(e.duracion_minutos)}`}
               fin={
                 <span className="flex items-center gap-2">
+                  {esVisitanteCasual(e) && <Insignia tono="info">Casual</Insignia>}
                   {e.duracion_minutos > MINUTOS_DIA && <Insignia tono="aviso">Más de 24 h</Insignia>}
                   <Boton variante="secundario" onClick={() => setASacar(e)}>Salida</Boton>
                 </span>

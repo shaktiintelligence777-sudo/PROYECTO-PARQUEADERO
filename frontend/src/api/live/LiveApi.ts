@@ -6,6 +6,7 @@ import type {
   PagoCrear, PagoRegistrado, PagoVistaPrevia, Plan, PlanCrear, PlanEditar, RefreshEntrada, Sesion, Usuario, UsuarioCrear,
   UsuarioEditar,
 } from '../client';
+import { ErrorApi } from '../client';
 import { crearHttp, type Consulta, type Metodo, type OpcionesHttp } from './http';
 
 const id = (valor: string) => encodeURIComponent(valor);
@@ -83,6 +84,9 @@ export class LiveApi implements ApiClient {
 
   consultarPlaca(placa: string) { return this.pedir<ConsultaPlaca>('GET', '/accesos/consulta', { consulta: { placa } }); }
   registrarEntrada(datos: AccesoEntrada) { return this.pedir<AccesoRegistrado>('POST', '/accesos/entrada', { cuerpo: datos }); }
+  registrarEntradaCasual(): Promise<AccesoRegistrado> {
+    return Promise.reject(new ErrorApi(501, 'error_interno', 'El visitante casual solo está disponible en el demo.'));
+  }
   registrarSalida(datos: AccesoEntrada) { return this.pedir<AccesoRegistrado>('POST', '/accesos/salida', { cuerpo: datos }); }
   listarMotosDentro(filtros?: { placa?: string }) {
     return this.pedir<{ items: Estancia[]; total: number; capacidad: number | null }>('GET', '/accesos/dentro', { consulta: filtros });

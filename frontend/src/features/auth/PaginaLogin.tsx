@@ -71,7 +71,7 @@ export function PaginaLogin() {
       <div className="w-full max-w-sm rounded-tarjeta bg-blanco p-6 shadow-tarjeta">
         <div className="mb-6 flex flex-col items-center gap-2">
           <Placa placa="ABC12D" tamano="lg" />
-          <h1 className="text-titulo text-asfalto-900">Parqueadero</h1>
+          <h1 className="text-titulo text-asfalto-900">Parqueadero Las Bermúdez</h1>
         </div>
         {motivoLogin === 'sesion_vencida' && <Aviso tono="info" className="mb-4">Tu sesión venció. Inicia sesión otra vez.</Aviso>}
         {motivoLogin === 'password_cambiada' && <Aviso tono="exito" className="mb-4">Contraseña cambiada. Inicia sesión con la nueva.</Aviso>}

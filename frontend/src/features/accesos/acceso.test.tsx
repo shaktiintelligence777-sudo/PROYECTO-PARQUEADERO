@@ -195,3 +195,40 @@ describe('P3 · registro de acceso', () => {
     expect(await screen.findByRole('radio', { name: /^Dentro/ })).toBeChecked();
   });
 });
+
+describe('Visitante casual', () => {
+  it('muestra los dos botones del mismo tamaño cuando la placa no existe', async () => {
+    await abrir();
+    await buscar('ZZZ99Z');
+    const enlace = await screen.findByRole('link', { name: 'Registrar cliente nuevo' });
+    const boton = screen.getByRole('button', { name: 'Visitante casual' });
+    expect(enlace.className).toContain('h-16');
+    expect(boton.className).toContain('h-16');
+  });
+
+  it('exige marca y color, el nombre es opcional, y registra la entrada', async () => {
+    await abrir();
+    const u = await buscar('ZZZ99Z');
+    await u.click(await screen.findByRole('button', { name: 'Visitante casual' }));
+    await u.click(screen.getByRole('button', { name: 'Registrar entrada' }));
+    expect(await screen.findByText('Escribe la marca.')).toBeInTheDocument();
+    expect(screen.getByText('Escribe el color.')).toBeInTheDocument();
+    await u.type(screen.getByLabelText('Marca'), 'Honda');
+    await u.type(screen.getByLabelText('Color'), 'Rojo');
+    await u.click(screen.getByRole('button', { name: 'Registrar entrada' }));
+    expect(await screen.findByText('Entrada registrada · ZZZ99Z · Visitante casual')).toBeInTheDocument();
+    expect(screen.getByLabelText('Placa')).toHaveValue('');
+  });
+
+  it('aparece en "Dentro" y su salida se registra desde la búsqueda por placa', async () => {
+    await e.api.registrarEntradaCasual({ placa: 'ZZZ99Z', marca: 'Honda', color: 'Rojo', nombre: 'Luis' });
+    await abrir();
+    const u = await buscar('zzz99z');
+    const r = await screen.findByLabelText('Resultado de ZZZ99Z');
+    expect(within(r).getByText('Luis')).toBeInTheDocument();
+    expect(within(r).getByText('Visitante casual')).toBeInTheDocument();
+    expect(within(r).queryByRole('link', { name: 'Ver cliente' })).not.toBeInTheDocument();
+    await u.click(within(r).getByRole('button', { name: 'Registrar salida' }));
+    expect(await screen.findByText(/^Salida registrada · ZZZ99Z/)).toBeInTheDocument();
+  });
+});

@@ -6,7 +6,7 @@ import {
   type LoginEntrada, type Membresia, type MembresiaCrear, type MembresiaResumen, type Moto, type MotoConCliente, type MotoCrear,
   type MotoEditar, type MotivoEntrada, type Notificacion, type Pagina, type Pago, type PagoCrear, type PagoRegistrado,
   type PagoVistaPrevia, type Plan, type PlanCrear, type PlanEditar, type RefreshEntrada, type Sesion, type Usuario, type UsuarioCrear,
-  type UsuarioEditar, type EstadoMembresia,
+  type UsuarioEditar, type EstadoMembresia, type VisitanteCasualEntrada,
 } from '../client';
 import { guardarDb, leerDb, reiniciarDb } from './almacen';
 import { nuevoId } from './ids';
@@ -158,12 +158,17 @@ export class MockApi implements ApiClient {
       .sort((a, b) => Number(b.activo) - Number(a.activo) || a.placa.localeCompare(b.placa)).map((m) => this.motoVista(db, m));
     return { ...this.clienteBase(c), motos, membresia: this.resumen(db, this.membresiaActual(db, c.id)) };
   }
+  /** Placa de la estancia, sea de una moto registrada o de un visitante casual. */
+  private placaDe(db: Db, e: FilaEstancia): string { return e.visitante ? e.visitante.placa : db.motos.find((m) => m.id === e.moto_id)!.placa; }
   private estanciaVista(db: Db, e: FilaEstancia): Estancia {
-    const moto = db.motos.find((m) => m.id === e.moto_id)!;
+    const v = e.visitante;
+    const moto = v ? null : db.motos.find((m) => m.id === e.moto_id)!;
     const fin = e.salida_en ? new Date(e.salida_en).getTime() : this.reloj.ahora().getTime();
     return {
-      id: e.id, moto: { id: moto.id, placa: moto.placa, marca: moto.marca, color: moto.color },
-      cliente: this.clienteRef(this.cliente(db, moto.cliente_id)), entrada_en: e.entrada_en, salida_en: e.salida_en,
+      id: e.id,
+      moto: v ? { id: e.id, placa: v.placa, marca: v.marca, color: v.color } : { id: moto!.id, placa: moto!.placa, marca: moto!.marca, color: moto!.color },
+      cliente: v ? { id: e.id, nombre: v.nombre ?? 'Visitante casual', documento: '', telefono: '' } : this.clienteRef(this.cliente(db, moto!.cliente_id)),
+      entrada_en: e.entrada_en, salida_en: e.salida_en,
       duracion_minutos: Math.max(0, Math.floor((fin - new Date(e.entrada_en).getTime()) / 60_000)),
       operador_entrada: this.usuarioRef(db, e.operador_entrada),
       operador_salida: e.operador_salida ? this.usuarioRef(db, e.operador_salida) : null,
@@ -725,8 +730,21 @@ export class MockApi implements ApiClient {
     return m ? this.estado(db, m) : null;
   }
 
+  /** Estancia abierta de un visitante casual con esa placa (la placa ya viene normalizada). */
+  private casualAbierta(db: Db, placa: string): FilaEstancia | undefined {
+    return db.estancias.find((e) => e.visitante?.placa === placa && !e.salida_en);
+  }
+
   consultarPlaca(placa: string): Promise<ConsultaPlaca> {
     return this.ejecutar(({ db }) => {
+      const abiertaCasual = this.casualAbierta(db, normalizarPlaca(placa ?? ''));
+      if (abiertaCasual && !db.motos.some((m) => m.placa === abiertaCasual.visitante!.placa && m.activo)) {
+        const est = this.estanciaVista(db, abiertaCasual);
+        return {
+          moto: { id: est.moto.id, cliente_id: est.cliente.id, placa: est.moto.placa, marca: est.moto.marca, color: est.moto.color, activo: true, dentro: true, creado_en: abiertaCasual.entrada_en },
+          cliente: est.cliente, membresia: null, estancia_abierta: est, advertencias: [],
+        };
+      }
       const moto = this.motoPorPlaca(db, placa);
       const abierta = db.estancias.find((e) => e.moto_id === moto.id && !e.salida_en);
       return {
@@ -751,8 +769,36 @@ export class MockApi implements ApiClient {
     });
   }
 
+  registrarEntradaCasual(d: VisitanteCasualEntrada): Promise<AccesoRegistrado> {
+    return this.ejecutar(({ db, usuario }) => {
+      const placa = normalizarPlaca(d?.placa ?? '');
+      const v = new Validador();
+      if (!PLACA_VALIDA.test(placa)) v.falla('placa', 'La placa debe tener entre 4 y 7 letras o números.');
+      v.texto('marca', d?.marca, 1, 40);
+      v.texto('color', d?.color, 1, 40);
+      v.texto('nombre', d?.nombre, 1, 120, false);
+      v.verificar();
+      // Una placa de moto registrada se atiende como cliente normal; una placa ya dentro como visitante no se duplica (RN-50).
+      if (db.motos.some((m) => m.placa === placa && m.activo)) throw err(409, 'placa_duplicada', 'Esa placa ya pertenece a un cliente con membresía.', [{ campo: 'placa', mensaje: 'Esa placa ya está registrada.' }]);
+      if (this.casualAbierta(db, placa)) throw err(409, 'moto_ya_dentro', 'Esa moto ya está dentro del parqueadero.');
+      const nombre = d.nombre?.trim();
+      const e: FilaEstancia = {
+        id: nuevoId(), moto_id: '', entrada_en: this.reloj.ahora().toISOString(), salida_en: null, operador_entrada: usuario.id, operador_salida: null,
+        visitante: { placa, marca: d.marca.trim(), color: d.color.trim(), nombre: nombre ? nombre : null },
+      };
+      db.estancias.push(e);
+      return { estancia: this.estanciaVista(db, e), membresia: null, advertencias: [] };
+    });
+  }
+
   registrarSalida(d: AccesoEntrada): Promise<AccesoRegistrado> {
     return this.ejecutar(({ db, usuario }) => {
+      const casual = this.casualAbierta(db, normalizarPlaca(d?.placa ?? ''));
+      if (casual) {
+        casual.salida_en = this.reloj.ahora().toISOString();
+        casual.operador_salida = usuario.id;
+        return { estancia: this.estanciaVista(db, casual), membresia: null, advertencias: [] };
+      }
       const moto = this.motoPorPlaca(db, d?.placa);
       const e = db.estancias.find((x) => x.moto_id === moto.id && !x.salida_en);
       if (!e) throw err(409, 'moto_no_esta_dentro', 'Esa moto no tiene una entrada abierta.'); // RN-53
@@ -765,7 +811,7 @@ export class MockApi implements ApiClient {
   listarMotosDentro(f: { placa?: string } = {}): Promise<{ items: Estancia[]; total: number; capacidad: number | null }> {
     return this.ejecutar(({ db }) => {
       const placa = f.placa ? normalizarPlaca(f.placa) : '';
-      const items = db.estancias.filter((e) => !e.salida_en && (!placa || db.motos.find((m) => m.id === e.moto_id)!.placa.startsWith(placa)))
+      const items = db.estancias.filter((e) => !e.salida_en && (!placa || this.placaDe(db, e).startsWith(placa)))
         .sort((a, b) => a.entrada_en.localeCompare(b.entrada_en)).map((e) => this.estanciaVista(db, e));
       return { items, total: items.length, capacidad: db.configuracion.capacidad };
     });
@@ -774,13 +820,12 @@ export class MockApi implements ApiClient {
   private filtrarHistorial(db: Db, f: FiltrosHistorial): Estancia[] {
     const placa = f.placa ? normalizarPlaca(f.placa) : '';
     return db.estancias.filter((e) => {
-      const moto = db.motos.find((m) => m.id === e.moto_id)!;
       const dia = fechaBogota(new Date(e.entrada_en));
       if (f.desde && dia < f.desde) return false;
       if (f.hasta && dia > f.hasta) return false;
-      if (placa && !moto.placa.startsWith(placa)) return false;
+      if (placa && !this.placaDe(db, e).startsWith(placa)) return false;
       if (f.operador_id && e.operador_entrada !== f.operador_id && e.operador_salida !== f.operador_id) return false;
-      if (f.cliente_id && moto.cliente_id !== f.cliente_id) return false;
+      if (f.cliente_id && (e.visitante || db.motos.find((m) => m.id === e.moto_id)!.cliente_id !== f.cliente_id)) return false;
       return true;
     }).sort((a, b) => b.entrada_en.localeCompare(a.entrada_en)).map((e) => this.estanciaVista(db, e));
   }
