@@ -287,3 +287,37 @@ describe('Paginador, listas y otros', () => {
     expect(al).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('Tabla ordenable', () => {
+  type Fila = { nombre: string; fecha: number | null };
+  const columnas = [
+    { clave: 'nombre', encabezado: 'Nombre', celda: (f: Fila) => f.nombre, ordenar: (f: Fila) => f.nombre },
+    { clave: 'fecha', encabezado: 'Fecha', celda: (f: Fila) => f.fecha ?? '—', ordenar: (f: Fila) => f.fecha },
+  ];
+  const filas: Fila[] = [
+    { nombre: 'Carlos', fecha: null },
+    { nombre: 'ana', fecha: 300 },
+    { nombre: 'Beatriz', fecha: 100 },
+  ];
+  const nombres = () => screen.getAllByRole('row').slice(1).map((r) => r.querySelector('td')?.textContent);
+
+  it('ORD-1 un clic ordena ascendente, el segundo descendente y los vacíos quedan al final', async () => {
+    render(<Tabla descripcion="Clientes" columnas={columnas} filas={filas} claveFila={(f) => f.nombre} />);
+    const boton = screen.getByRole('button', { name: 'Ordenar por Nombre' });
+    await userEvent.click(boton);
+    expect(nombres()).toEqual(['ana', 'Beatriz', 'Carlos']);
+    expect(screen.getByRole('columnheader', { name: /Nombre/ })).toHaveAttribute('aria-sort', 'ascending');
+    await userEvent.click(boton);
+    expect(nombres()).toEqual(['Carlos', 'Beatriz', 'ana']);
+    expect(screen.getByRole('columnheader', { name: /Nombre/ })).toHaveAttribute('aria-sort', 'descending');
+  });
+
+  it('ORD-2 ordenar fechas cronológicamente con vacíos al final en ambas direcciones', async () => {
+    render(<Tabla descripcion="Clientes" columnas={columnas} filas={filas} claveFila={(f) => f.nombre} />);
+    const boton = screen.getByRole('button', { name: 'Ordenar por Fecha' });
+    await userEvent.click(boton);
+    expect(nombres()).toEqual(['Beatriz', 'ana', 'Carlos']);
+    await userEvent.click(boton);
+    expect(nombres()).toEqual(['ana', 'Beatriz', 'Carlos']);
+  });
+});
