@@ -5,6 +5,7 @@ from collections.abc import Awaitable, Callable
 from fastapi import APIRouter, FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.core import cabeceras
 from app.core.config import obtener_ajustes
 from app.core.errores import registrar_manejadores
 from app.modules.accesos.router import router as accesos_router
@@ -49,13 +50,7 @@ def crear_app() -> FastAPI:
         request: Request, call_next: Callable[[Request], Awaitable[Response]]
     ) -> Response:
         response = await call_next(request)
-        response.headers.setdefault("X-Content-Type-Options", "nosniff")
-        response.headers.setdefault("X-Frame-Options", "DENY")
-        response.headers.setdefault("Referrer-Policy", "no-referrer")
-        if es_produccion:
-            response.headers.setdefault(
-                "Strict-Transport-Security", "max-age=63072000; includeSubDomains"
-            )
+        cabeceras.aplicar(request, response.headers, es_produccion)
         return response
 
     api = APIRouter(prefix=PREFIJO_API)
