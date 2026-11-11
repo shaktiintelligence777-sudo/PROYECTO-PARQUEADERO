@@ -3,7 +3,7 @@
 from functools import lru_cache
 from typing import Annotated, Literal
 
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
@@ -39,6 +39,17 @@ class Ajustes(BaseSettings):
     login_max_fallos_ip: int = Field(default=20, alias="LOGIN_MAX_FALLOS_IP", gt=0)
     login_ventana_minutos: int = Field(default=15, alias="LOGIN_VENTANA_MINUTOS", gt=0)
 
+    # B-07: correo
+    correo_proveedor: Literal["consola", "smtp", "resend"] = Field(
+        default="consola", alias="CORREO_PROVEEDOR"
+    )
+    correo_remitente: str | None = Field(default=None, alias="CORREO_REMITENTE")
+    smtp_host: str | None = Field(default=None, alias="SMTP_HOST")
+    smtp_puerto: int = Field(default=587, alias="SMTP_PUERTO", gt=0, lt=65536)
+    smtp_usuario: str | None = Field(default=None, alias="SMTP_USUARIO")
+    smtp_password: str | None = Field(default=None, alias="SMTP_PASSWORD")
+    resend_api_key: str | None = Field(default=None, alias="RESEND_API_KEY")
+
     @field_validator("database_url")
     @classmethod
     def _normalizar_database_url(cls, v: str) -> str:
@@ -52,6 +63,19 @@ class Ajustes(BaseSettings):
         if isinstance(v, list) and "*" in v:
             raise ValueError("CORS_ORIGENES no puede ser '*'")
         return v
+
+    @model_validator(mode="after")
+    def _validar_correo(self) -> "Ajustes":
+        faltan: list[str] = []
+        if self.correo_proveedor != "consola" and not self.correo_remitente:
+            faltan.append("CORREO_REMITENTE")
+        if self.correo_proveedor == "smtp" and not self.smtp_host:
+            faltan.append("SMTP_HOST")
+        if self.correo_proveedor == "resend" and not self.resend_api_key:
+            faltan.append("RESEND_API_KEY")
+        if faltan:
+            raise ValueError(f"CORREO_PROVEEDOR={self.correo_proveedor} exige: {', '.join(faltan)}")
+        return self
 
 
 @lru_cache

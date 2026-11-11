@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 |---|---|
-| Estado | lista |
+| Estado | en revisión |
 | Línea | B (fullstack) |
 | Asignado a | Opus |
 | Revisa | Fable |
@@ -109,4 +109,5 @@ Tabla `notificaciones` (B-02). Lecturas de `membresias`, `clientes`, `planes`, `
 
 ## 8. Preguntas abiertas
 
-- …
+- **`intentos` en un envío correcto.** La regla 4 solo dice “Fallo → `intentos + 1`”. Lo apliqué literalmente: un envío correcto no suma intento (una notificación enviada a la primera queda con `intentos: 0`). Si `intentos` debe contar todos los envíos, es un cambio de una línea en `app/jobs/notificaciones.py`.
+- **CA-15 y `actionlint`.** En el entorno del constructor no se pudo descargar `actionlint`. La estructura y la ausencia de secretos en claro se prueban en `tests/notificaciones/test_workflow_cron.py`; falta pasar `actionlint` en la revisión.

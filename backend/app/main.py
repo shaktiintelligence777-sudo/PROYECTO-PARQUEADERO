@@ -12,6 +12,8 @@ from app.modules.auth.router import router as auth_router
 from app.modules.clientes.router import router as clientes_router
 from app.modules.membresias.router import router as membresias_router
 from app.modules.motos.router import router as motos_router
+from app.modules.notificaciones.router import router as notificaciones_router
+from app.modules.notificaciones.router import router_interno as interno_router
 from app.modules.pagos.router import router as pagos_router
 from app.modules.planes.router import router as planes_router
 from app.modules.salud.router import VERSION
@@ -65,6 +67,8 @@ def crear_app() -> FastAPI:
     api.include_router(planes_router)
     api.include_router(membresias_router)
     api.include_router(pagos_router)
+    api.include_router(notificaciones_router)
+    api.include_router(interno_router)
     app.include_router(api)
     return app
 
