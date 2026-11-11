@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 |---|---|
-| Estado | lista |
+| Estado | en revisión |
 | Línea | A (demo) |
 | Asignado a | Sonnet |
 | Revisa | Fable |
@@ -57,16 +57,16 @@ Disponible para ambos roles.
 
 ## 5. Criterios de aceptación
 
-- [ ] **CA-1** Dado el resumen cargando, entonces se muestran esqueletos con la forma de los cuatro indicadores y de la lista.
-- [ ] **CA-2** Dado un resumen con `motos_dentro: 12` y `capacidad: 40`, entonces se lee “12 / 40”; con capacidad nula, “12”.
-- [ ] **CA-3** Dado `membresias.vencidas: 2`, entonces el indicador “Vencidas” usa el tono `peligro` y enlaza a `/membresias?estado=vencida`; con 0, sin tono.
-- [ ] **CA-4** Dado `pagos_hoy: { cantidad: 3, total: 180000 }`, entonces se lee “$180.000” y “3 pagos”; con cantidad 1, “1 pago”.
-- [ ] **CA-5** Dado `estancias_largas: 1`, entonces aparece “1 moto lleva más de 24 h dentro.”; con 3, “3 motos llevan más de 24 h dentro.”; con 0, no aparece.
-- [ ] **CA-6** Dada la lista de próximos vencimientos, entonces cada elemento muestra nombre, insignia, placa y “vence mañana” o equivalente, y lleva a la ficha del cliente.
-- [ ] **CA-7** Dada una lista vacía, entonces se muestra “Ninguna membresía vence en los próximos días.”
-- [ ] **CA-8** Dado un error de carga, entonces se muestra “No pudimos cargar esta información.” con “Reintentar”.
-- [ ] **CA-9** Dado que se registra una entrada en otra pantalla, cuando se vuelve al dashboard, entonces “Dentro ahora” refleja el cambio.
-- [ ] **CA-10** Dado un ancho de 360 px, entonces los indicadores se muestran en una cuadrícula de 2 × 2 sin desplazamiento horizontal.
+- [x] **CA-1** Dado el resumen cargando, entonces se muestran esqueletos con la forma de los cuatro indicadores y de la lista.
+- [x] **CA-2** Dado un resumen con `motos_dentro: 12` y `capacidad: 40`, entonces se lee “12 / 40”; con capacidad nula, “12”.
+- [x] **CA-3** Dado `membresias.vencidas: 2`, entonces el indicador “Vencidas” usa el tono `peligro` y enlaza a `/membresias?estado=vencida`; con 0, sin tono.
+- [x] **CA-4** Dado `pagos_hoy: { cantidad: 3, total: 180000 }`, entonces se lee “$180.000” y “3 pagos”; con cantidad 1, “1 pago”.
+- [x] **CA-5** Dado `estancias_largas: 1`, entonces aparece “1 moto lleva más de 24 h dentro.”; con 3, “3 motos llevan más de 24 h dentro.”; con 0, no aparece.
+- [x] **CA-6** Dada la lista de próximos vencimientos, entonces cada elemento muestra nombre, insignia, placa y “vence mañana” o equivalente, y lleva a la ficha del cliente.
+- [x] **CA-7** Dada una lista vacía, entonces se muestra “Ninguna membresía vence en los próximos días.”
+- [x] **CA-8** Dado un error de carga, entonces se muestra “No pudimos cargar esta información.” con “Reintentar”.
+- [x] **CA-9** Dado que se registra una entrada en otra pantalla, cuando se vuelve al dashboard, entonces “Dentro ahora” refleja el cambio.
+- [x] **CA-10** Dado un ancho de 360 px, entonces los indicadores se muestran en una cuadrícula de 2 × 2 sin desplazamiento horizontal.
 
 ## 6. Pruebas requeridas
 
@@ -78,4 +78,5 @@ Disponible para ambos roles.
 
 ## 8. Preguntas abiertas
 
-- …
+- El saludo necesita “día de la semana + día + mes” (“lun 10 nov”) y `lib/formato.ts` no tenía esa función (el design-system §4 limita los formateadores): se añadió `formatoFechaCorta`. Confirmar que está bien ampliar `formato.ts`.
+- El indicador “Pagos de hoy” enlaza a `/pagos`, cuyo filtro por defecto ya es “Hoy”, así que no hace falta parámetro de URL.

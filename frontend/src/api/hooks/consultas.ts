@@ -26,7 +26,9 @@ export const useMotosDentro = (f?: { placa?: string }, refrescarCadaMs?: number)
   useQuery({ queryKey: claves.dentro(f), queryFn: () => obtenerApi().listarMotosDentro(f), ...lista, refetchInterval: refrescarCadaMs });
 export const useHistorialAccesos = (f?: FiltrosHistorial) =>
   useQuery({ queryKey: claves.historial(f), queryFn: () => obtenerApi().listarHistorialAccesos(f), ...lista });
-export const useResumenDashboard = () => useQuery({ queryKey: claves.dashboard, queryFn: () => obtenerApi().resumenDashboard() });
+/** El dashboard se refresca cada 60 s y al recuperar el foco de la ventana (spec A-08). */
+export const useResumenDashboard = () =>
+  useQuery({ queryKey: claves.dashboard, queryFn: () => obtenerApi().resumenDashboard(), refetchInterval: 60_000, refetchOnWindowFocus: true });
 export const useUsuarios = (f?: FiltrosUsuarios) => useQuery({ queryKey: claves.usuarios(f), queryFn: () => obtenerApi().listarUsuarios(f), ...lista });
 export const useNotificaciones = (f?: FiltrosNotificaciones) =>
   useQuery({ queryKey: claves.notificaciones(f), queryFn: () => obtenerApi().listarNotificaciones(f), ...lista });

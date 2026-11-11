@@ -6,6 +6,7 @@ import { PaginaNuevoCliente } from '@/features/clientes/PaginaNuevoCliente';
 import { PaginaMembresias } from '@/features/membresias/PaginaMembresias';
 import { PaginaNuevoPago } from '@/features/pagos/PaginaNuevoPago';
 import { PaginaPagos } from '@/features/pagos/PaginaPagos';
+import { PaginaDashboard } from '@/features/dashboard/PaginaDashboard';
 import { PaginaLogin } from '@/features/auth/PaginaLogin';
 import { DisposicionApp } from './DisposicionApp';
 import { RutaProtegida } from './RutaProtegida';
@@ -41,6 +42,7 @@ function Provisional({ nombre }: { nombre: string }) {
 
 /** Pantallas ya construidas; el resto muestra la página provisional. */
 const PAGINAS: Record<string, JSX.Element> = {
+  '/': <PaginaDashboard />,
   '/acceso': <PaginaAcceso />,
   '/clientes': <PaginaClientes />,
   '/clientes/nuevo': <PaginaNuevoCliente />,

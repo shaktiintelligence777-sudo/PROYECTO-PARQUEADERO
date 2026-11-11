@@ -342,7 +342,7 @@ Leyenda de estado: ⬜ por escribir · 📝 borrador · ✅ lista · 🔨 en con
 | A-05 | P3 Registro de acceso (entrada/salida por placa) | Sonnet | A-04 | 👀 |
 | A-06 | P4/P5 Clientes y motos | Sonnet | A-04 | 👀 |
 | A-07 | P6/P7 Membresías y pagos | Sonnet | A-04, A-06 | 👀 |
-| A-08 | P2 Dashboard | Sonnet | A-05, A-06, A-07 | ✅ |
+| A-08 | P2 Dashboard | Sonnet | A-05, A-06, A-07 | 👀 |
 | A-09 | Deploy a GitHub Pages (workflow) + banner “Modo demo” | Sonnet | A-01 | 👀 |
 | A-10 | Revisión de UX y accesibilidad del demo completo | Fable | A-08 | ⬜ |
 
