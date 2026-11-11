@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import { fijarApi, type ApiClient } from '@/api';
 import { conSesion } from '@/api/conSesion';
 import { MockApi } from '@/api/mock/MockApi';
@@ -22,11 +22,18 @@ export function crearEntorno(base: ApiClient = new MockApi({ espera: 0, reloj: r
   return { almacen, qc: new QueryClient({ defaultOptions: { queries: { retry: false } } }), api };
 }
 
+/** Muestra la ruta actual para poder comprobar la URL en las pruebas. */
+function Ubicacion() {
+  const l = useLocation();
+  return <output data-testid="ubicacion" hidden>{l.pathname + l.search}</output>;
+}
+
 export function montar(ruta: string, e: Entorno) {
   return render(
     <QueryClientProvider client={e.qc}>
       <ProveedorToasts>
         <MemoryRouter initialEntries={[ruta]}>
+          <Ubicacion />
           <ProveedorSesion almacen={e.almacen}>
             <RutasApp />
           </ProveedorSesion>
