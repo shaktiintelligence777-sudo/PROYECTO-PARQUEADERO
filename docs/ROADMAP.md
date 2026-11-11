@@ -367,9 +367,9 @@ Leyenda de estado: ⬜ por escribir · 📝 borrador · ✅ lista · 🔨 en con
 
 | ID | Módulo | Agente | Depende de | Estado |
 |---|---|---|---|---|
-| C-01 | Adaptador **live** del frontend + `VITE_API_MODE` + manejo de tokens | **Opus** | A-02, A-04, B-03 | 👀 |
+| C-01 | Adaptador **live** del frontend + `VITE_API_MODE` + manejo de tokens | **Opus** | A-02, A-04, B-03 | ✔️ |
 | C-02 | Pruebas e2e (Playwright) contra backend real en staging | Sonnet | C-01, B-09 | ✅ |
-| C-03 | Auditoría de seguridad final | **Opus** | C-01 | ✅ |
+| C-03 | Auditoría de seguridad final | **Opus** | C-01 | 👀 |
 | C-04 | Aceptación contra la visión y salida a producción | Fable | C-02, C-03 | ⬜ |
 
 ---

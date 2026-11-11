@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 |---|---|
-| Estado | lista |
+| Estado | en revisión |
 | Línea | C (convergencia) |
 | Asignado a | Opus |
 | Revisa | Fable |
@@ -87,4 +87,12 @@ El informe no incluye secretos ni datos reales de clientes.
 
 ## 8. Preguntas abiertas
 
-- …
+- **Operaciones aún no construidas.** B-08 y B-10 no están en `main`, así que CA-3 (“ni de menos”) no se puede cumplir del todo. Sus siete operaciones están en `PENDIENTES` (`backend/tests/seguridad/contrato.py`). `test_ca3_pendientes_al_dia` falla en cuanto una de ellas existe y sigue en la lista, de modo que entran solas en CA-1, CA-2 y CA-4. ¿Hay que repetir la auditoría cuando lleguen B-08 y B-10, o basta con esas pruebas?
+- **Archivos fuera del “Alcance” usados para corregir hallazgos:**
+  - `.github/workflows/ci-backend.yml` (H-01): el workflow no es `backend/` ni `frontend/`.
+  - `.gitleaks.toml`: configuración del escaneo de `seguridad.yml`.
+  - `backend/tests/seguridad/contrato.py` y `test_sql.py`: apoyo de las pruebas y prueba de CA-5.
+  - `backend/pyproject.toml`: `pyyaml` en `dev`.
+- **H-05 contradice la spec B-03** (primer valor de `X-Forwarded-For`). No se corrigió aquí: está en el issue #19 para que Fable decida.
+- **npm 10.9 y vitest 4.1.** `npm install` con npm 10.9 falla con `Cannot read properties of null (reading 'edgesOut')` al resolver los peers opcionales de vitest 4.1. El lockfile se generó con npm 11, y `npm ci` con npm 10 (el de CI) funciona. Si alguien vuelve a ejecutar `npm install` con npm 10, debe usar `npx npm@11 install`.
+- **Puntos 5 y 8** quedan “pendientes de verificar en el despliegue” (sección 6 del informe) hasta que el dueño cree Neon y Render (B-09). Esos resultados no son “riesgo aceptado”.

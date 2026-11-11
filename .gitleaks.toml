@@ -1,0 +1,20 @@
+# C-03: configuración del escaneo de secretos (workflow "Seguridad").
+# Se usan todas las reglas por defecto de gitleaks. Solo se ignoran los valores ficticios de las
+# pruebas y los ejemplos de la documentación, que por convención contienen una de estas palabras.
+# Un secreto real nunca las lleva.
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Valores ficticios de pruebas, ejemplos y demo"
+regexTarget = "secret"
+regexes = [
+  '''(?i)prueba''',
+  '''(?i)ejemplo''',
+  '''(?i)demo''',
+  '''(?i)ficticio''',
+  '''(?i)cambia-esto''',
+  '''^una-clave-larga-123$''',
+  '''^contraseña-segura-123$''',
+]

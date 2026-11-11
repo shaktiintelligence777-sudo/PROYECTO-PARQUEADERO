@@ -8,6 +8,9 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from app.core import cabeceras
+from app.core.config import obtener_ajustes
+
 log = logging.getLogger("app.errores")
 
 MENSAJES = {
@@ -148,7 +151,11 @@ async def _manejar_http(_: Request, exc: Exception) -> JSONResponse:
 async def _manejar_inesperado(request: Request, exc: Exception) -> JSONResponse:
     # La traza va al log (sin cabeceras ni cuerpo), nunca a la respuesta.
     log.error("Error no controlado en %s %s", request.method, request.url.path, exc_info=exc)
-    return _respuesta(500, "error_interno")
+    respuesta = _respuesta(500, "error_interno")
+    # Este manejador corre fuera de los middlewares de la app (ServerErrorMiddleware), así que
+    # las cabeceras de seguridad se ponen aquí.
+    cabeceras.aplicar(request, respuesta.headers, obtener_ajustes().entorno == "produccion")
+    return respuesta
 
 
 def registrar_manejadores(app: FastAPI) -> None:

@@ -105,3 +105,14 @@ async def test_ca13_semilla_se_niega_en_produccion() -> None:
 
     with pytest.raises(semilla.SemillaEnProduccion):
         await semilla.ejecutar(ajustes, fabrica_prohibida)  # type: ignore[arg-type]
+
+
+def test_vaciar_cubre_todas_las_tablas_salvo_configuracion() -> None:
+    """C-03 H-03: la sentencia literal de `reiniciar` no deja tablas fuera."""
+    from app.db.modelos import Base
+
+    sentencia = str(semilla.SQL_VACIAR)
+    nombradas = set(
+        sentencia.removeprefix("TRUNCATE ").split(" RESTART")[0].replace(" ", "").split(",")
+    )
+    assert nombradas == set(Base.metadata.tables) - {"configuracion"}

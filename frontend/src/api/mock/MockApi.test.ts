@@ -298,6 +298,16 @@ describe('A-02 · MockApi', () => {
     expect(texto.split('\n')).toHaveLength(36);
   });
 
+  it('C-03 H-06 la exportación CSV neutraliza las fórmulas', async () => {
+    const h = await api.listarHistorialAccesos({ por_pagina: 1 });
+    const estancia = h.items[0]!;
+    await api.editarCliente(estancia.cliente.id, { nombre: '=HYPERLINK("http://x","clic")' });
+    const blob = await api.exportarHistorialAccesos({ desde: sumarDias(hoy, -7), hasta: hoy });
+    const texto = new TextDecoder('utf-8', { ignoreBOM: true }).decode(new Uint8Array(await blob.arrayBuffer()));
+    expect(texto).toContain(`${estancia.moto.placa},"'=HYPERLINK(""http://x"",""clic"")"`);
+    expect(texto).not.toMatch(/(^|,)"?=HYPERLINK/m);
+  });
+
   it('dashboard coherente con los datos', async () => {
     const d = await api.resumenDashboard();
     expect(d.fecha).toBe(hoy);

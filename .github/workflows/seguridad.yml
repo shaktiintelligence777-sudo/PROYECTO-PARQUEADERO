@@ -1,0 +1,69 @@
+# C-03 CA-6: dependencias sin vulnerabilidades altas o críticas conocidas y repositorio sin
+# secretos. Corre en cada PR, en main y una vez por semana (las vulnerabilidades nuevas aparecen
+# aunque el código no cambie).
+name: Seguridad
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "0 12 * * 1" # lunes 12:00 UTC = 7:00 a. m. en Bogotá
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dependencias-backend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Instalar dependencias y pip-audit
+        run: |
+          python -m venv .venv-audit
+          .venv-audit/bin/pip install --upgrade pip
+          .venv-audit/bin/pip install ".[dev]" "pip-audit==2.10.1"
+      - name: pip-audit
+        run: .venv-audit/bin/pip-audit --progress-spinner off
+
+  dependencias-frontend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: npm audit (falla con vulnerabilidades altas o críticas)
+        run: npm audit --audit-level=high
+
+  secretos:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GITLEAKS_VERSION: 8.18.4
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # todo el historial, no solo el último commit
+      - name: Instalar gitleaks (versión fija y suma verificada)
+        run: |
+          base="https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}"
+          archivo="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          curl -sSfL -o "$archivo" "$base/$archivo"
+          curl -sSfL -o sumas.txt "$base/gitleaks_${GITLEAKS_VERSION}_checksums.txt"
+          grep " ${archivo}\$" sumas.txt | sha256sum --check --strict
+          tar -xzf "$archivo" gitleaks
+          rm -f "$archivo" sumas.txt
+      - name: Buscar secretos en todo el historial
+        run: ./gitleaks detect --source . --config .gitleaks.toml --redact --verbose --no-banner --log-opts="--all"

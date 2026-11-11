@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 |---|---|
-| Estado | en revisión |
+| Estado | hecha |
 | Línea | C (convergencia) |
 | Asignado a | Opus |
 | Revisa | Fable |
