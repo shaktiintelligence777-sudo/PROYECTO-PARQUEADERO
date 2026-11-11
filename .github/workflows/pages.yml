@@ -29,11 +29,16 @@ jobs:
       - run: npm test
       # C-01: el modo y la URL salen de las variables del repositorio (Settings → Variables → Actions).
       # Mientras el dueño no defina API_MODE=live y API_URL, se sigue publicando el demo.
+      # La URL solo se exporta en modo live: pasarla vacía haría que el nombre de la variable quedara en el demo.
+      - name: Dirección del servidor (solo live)
+        if: ${{ vars.API_MODE == 'live' }}
+        run: echo "VITE_API_URL=$API_URL" >> "$GITHUB_ENV"
+        env:
+          API_URL: ${{ vars.API_URL }}
       - name: Construir
         run: npm run build
         env:
           VITE_API_MODE: ${{ vars.API_MODE || 'mock' }}
-          VITE_API_URL: ${{ vars.API_URL }}
           VITE_BASE: /PROYECTO-PARQUEADERO/
       - name: El demo no debe contener ninguna URL de backend (A-09 CA-6)
         if: ${{ (vars.API_MODE || 'mock') == 'mock' }}
