@@ -21,7 +21,7 @@ describe('ruteo', () => {
   it('CA-3 /login (sin sesión) muestra P1', async () => {
     e.almacen.borrar();
     montar('/login', e);
-    expect(await screen.findByRole('heading', { name: 'Parqueadero' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Parqueadero Las Bermúdez' })).toBeInTheDocument();
   });
   it.each(RUTAS.filter((r) => r.rol !== 'publico').map((r) => [r.ruta, r.pantalla] as const))('CA-3 %s muestra %s', async (ruta, pantalla) => {
     montar(ruta.replace(':id', '123'), e);
