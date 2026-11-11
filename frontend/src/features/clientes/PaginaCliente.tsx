@@ -50,7 +50,7 @@ export function PaginaCliente() {
       />
       <div className="mb-4 space-y-1 text-cuerpo text-asfalto-700">
         <p>
-          {cliente.documento} · <a href={`tel:${cliente.telefono}`} className="text-info underline">{cliente.telefono}</a>
+          {cliente.telefono && <a href={`tel:${cliente.telefono}`} className="text-info underline">{cliente.telefono}</a>}
           {!cliente.activo && <Insignia tono="neutro" className="ml-2">Inactivo</Insignia>}
         </p>
         {cliente.email && <p>{cliente.email}</p>}

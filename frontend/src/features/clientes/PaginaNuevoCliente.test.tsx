@@ -13,23 +13,50 @@ beforeEach(async () => {
 });
 afterEach(() => { fijarApi(null); });
 
-async function llenar(u: ReturnType<typeof userEvent.setup>, v: { nombre?: string; documento?: string; telefono?: string; placa?: string }) {
-  if (v.nombre) await u.type(screen.getByLabelText('Nombre completo *'), v.nombre);
-  if (v.documento) await u.type(screen.getByLabelText('Documento *'), v.documento);
-  if (v.telefono) await u.type(screen.getByLabelText('Teléfono *'), v.telefono);
+async function llenar(u: ReturnType<typeof userEvent.setup>, v: { nombre?: string; apellidos?: string; telefono?: string; placa?: string }) {
+  if (v.nombre) await u.type(screen.getByLabelText('Nombre(s) *'), v.nombre);
+  if (v.apellidos) await u.type(screen.getByLabelText('Apellido(s) (opcional)'), v.apellidos);
+  if (v.telefono) await u.type(screen.getByLabelText('Teléfono (opcional)'), v.telefono);
   if (v.placa) { const p = screen.getByLabelText('Placa *'); await u.clear(p); await u.type(p, v.placa); }
 }
 
 describe('P5 · nuevo cliente', () => {
-  it('CA-5 el formulario vacío muestra las validaciones y no llama a la API', async () => {
+  it('CA-5 el formulario vacío pide solo el nombre y no llama a la API', async () => {
     const espia = vi.spyOn(e.api, 'crearCliente');
     montar('/clientes/nuevo', e);
     await userEvent.click(await screen.findByRole('button', { name: 'Guardar cliente' }));
     expect(await screen.findByText('Escribe el nombre.')).toBeInTheDocument();
-    expect(screen.getByText('El documento debe tener entre 5 y 20 letras o números.')).toBeInTheDocument();
-    expect(screen.getByText('El teléfono debe tener entre 7 y 15 dígitos.')).toBeInTheDocument();
+    expect(screen.queryByText('El teléfono debe tener entre 7 y 15 dígitos.')).not.toBeInTheDocument();
     expect(screen.getByText('La placa debe tener entre 4 y 7 letras o números.')).toBeInTheDocument();
     expect(espia).not.toHaveBeenCalled();
+  });
+
+  it('CA-10 la pantalla no pide documento y el teléfono y el apellido son opcionales', async () => {
+    montar('/clientes/nuevo', e);
+    await screen.findByLabelText('Nombre(s) *');
+    expect(screen.queryByLabelText(/Documento/)).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Apellido(s) (opcional)')).toBeInTheDocument();
+    expect(screen.getByLabelText('Teléfono (opcional)')).toBeInTheDocument();
+  });
+
+  it('CA-11 solo con Nombre(s) se registra el cliente', async () => {
+    montar('/clientes/nuevo', e);
+    const u = userEvent.setup();
+    await screen.findByLabelText('Nombre(s) *');
+    await u.click(screen.getByRole('button', { name: 'Quitar moto 1' }));
+    await llenar(u, { nombre: 'Solo Nombre' });
+    await u.click(screen.getByRole('button', { name: 'Guardar cliente' }));
+    expect(await screen.findByRole('heading', { name: 'Solo Nombre' })).toBeInTheDocument();
+  });
+
+  it('CA-12 el apellido, si se escribe, se muestra junto al nombre', async () => {
+    montar('/clientes/nuevo', e);
+    const u = userEvent.setup();
+    await screen.findByLabelText('Nombre(s) *');
+    await u.click(screen.getByRole('button', { name: 'Quitar moto 1' }));
+    await llenar(u, { nombre: 'Ana', apellidos: 'Prueba Ruiz' });
+    await u.click(screen.getByRole('button', { name: 'Guardar cliente' }));
+    expect(await screen.findByRole('heading', { name: 'Ana Prueba Ruiz' })).toBeInTheDocument();
   });
 
   it('un email inválido muestra su mensaje', async () => {
@@ -43,8 +70,8 @@ describe('P5 · nuevo cliente', () => {
   it('CA-6 un alta válida con una moto abre la ficha con el cliente y su moto', async () => {
     montar('/clientes/nuevo', e);
     const u = userEvent.setup();
-    await screen.findByLabelText('Nombre completo *');
-    await llenar(u, { nombre: 'Ana Prueba', documento: 'ANA12345', telefono: '300 111 2233', placa: 'new-01a' });
+    await screen.findByLabelText('Nombre(s) *');
+    await llenar(u, { nombre: 'Ana Prueba', telefono: '300 111 2233', placa: 'new-01a' });
     await u.click(screen.getByRole('button', { name: 'Guardar cliente' }));
     expect(await screen.findByText('Cliente registrado.')).toBeInTheDocument();
     expect(await screen.findByRole('heading', { name: 'Ana Prueba' })).toBeInTheDocument();
@@ -55,9 +82,9 @@ describe('P5 · nuevo cliente', () => {
   it('se puede crear un cliente sin moto', async () => {
     montar('/clientes/nuevo', e);
     const u = userEvent.setup();
-    await screen.findByLabelText('Nombre completo *');
+    await screen.findByLabelText('Nombre(s) *');
     await u.click(screen.getByRole('button', { name: 'Quitar moto 1' }));
-    await llenar(u, { nombre: 'Sin Moto', documento: 'SIN12345', telefono: '3001112233' });
+    await llenar(u, { nombre: 'Sin Moto', telefono: '3001112233' });
     await u.click(screen.getByRole('button', { name: 'Guardar cliente' }));
     expect(await screen.findByRole('heading', { name: 'Sin Moto' })).toBeInTheDocument();
   });
@@ -70,23 +97,11 @@ describe('P5 · nuevo cliente', () => {
     expect(screen.queryByRole('button', { name: /Agregar/ })).not.toBeInTheDocument();
   });
 
-  it('CA-7 un documento repetido se marca bajo Documento y se conservan los demás datos', async () => {
-    montar('/clientes/nuevo', e);
-    const u = userEvent.setup();
-    await screen.findByLabelText('Nombre completo *');
-    await llenar(u, { nombre: 'Otra Persona', documento: '900000001', telefono: '3001112233', placa: 'OTR11A' });
-    await u.click(screen.getByRole('button', { name: 'Guardar cliente' }));
-    expect(await screen.findByText('Ya existe un cliente con ese documento.')).toBeInTheDocument();
-    expect(screen.getByLabelText('Nombre completo *')).toHaveValue('Otra Persona');
-    expect(screen.getByLabelText('Teléfono *')).toHaveValue('3001112233');
-    expect(screen.getByLabelText('Placa *')).toHaveValue('OTR11A');
-  });
-
   it('CA-8 una placa repetida se marca bajo esa placa', async () => {
     montar('/clientes/nuevo', e);
     const u = userEvent.setup();
-    await screen.findByLabelText('Nombre completo *');
-    await llenar(u, { nombre: 'Otra Persona', documento: 'OTR12345', telefono: '3001112233', placa: 'ABC12D' });
+    await screen.findByLabelText('Nombre(s) *');
+    await llenar(u, { nombre: 'Otra Persona', telefono: '3001112233', placa: 'ABC12D' });
     await u.click(screen.getByRole('button', { name: 'Guardar cliente' }));
     expect(await screen.findByText('Esa placa ya está registrada.')).toBeInTheDocument();
   });
@@ -99,11 +114,11 @@ describe('P5 · nuevo cliente', () => {
   it('CA-15 con cambios, volver pide confirmar; "Seguir editando" conserva y "Descartar" sale', async () => {
     montar('/clientes/nuevo', e);
     const u = userEvent.setup();
-    await u.type(await screen.findByLabelText('Nombre completo *'), 'Algo');
+    await u.type(await screen.findByLabelText('Nombre(s) *'), 'Algo');
     await u.click(screen.getByRole('button', { name: 'Volver' }));
     expect(await screen.findByText('¿Descartar los cambios?')).toBeInTheDocument();
     await u.click(screen.getByRole('button', { name: 'Seguir editando' }));
-    expect(screen.getByLabelText('Nombre completo *')).toHaveValue('Algo');
+    expect(screen.getByLabelText('Nombre(s) *')).toHaveValue('Algo');
     await u.click(screen.getByRole('button', { name: 'Volver' }));
     await u.click(await screen.findByRole('button', { name: 'Descartar' }));
     await waitFor(() => expect(screen.getByTestId('ubicacion').textContent).toBe('/clientes'));

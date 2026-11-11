@@ -328,7 +328,7 @@ export class MockApi implements ApiClient {
       const v = new Validador();
       v.texto('nombre', d?.nombre, 2, 120);
       v.patron('documento', d?.documento, RE_DOCUMENTO, 'Entre 5 y 20 letras o números, sin puntos ni espacios.');
-      v.patron('telefono', d?.telefono, RE_TELEFONO, 'Entre 7 y 15 dígitos, con + inicial opcional.');
+      v.patron('telefono', d?.telefono, RE_TELEFONO, 'Entre 7 y 15 dígitos, con + inicial opcional.', false);
       v.email('email', d?.email, false);
       v.texto('notas', d?.notas, 0, 500, false);
       if ((d?.motos?.length ?? 0) > 5) v.falla('motos', 'Máximo 5 motos.');
@@ -350,7 +350,7 @@ export class MockApi implements ApiClient {
       if (repetidas.length) throw err(409, 'placa_duplicada', 'Una de las placas ya está registrada.', repetidas);
       const ahora = this.reloj.ahora().toISOString();
       const c: FilaCliente = {
-        id: nuevoId(), nombre: d.nombre.trim(), documento: d.documento, telefono: d.telefono, email: d.email?.trim() || null,
+        id: nuevoId(), nombre: d.nombre.trim(), documento: d.documento, telefono: d.telefono ?? '', email: d.email?.trim() || null,
         notas: d.notas?.trim() || null, activo: true, creado_en: ahora,
       };
       db.clientes.push(c);

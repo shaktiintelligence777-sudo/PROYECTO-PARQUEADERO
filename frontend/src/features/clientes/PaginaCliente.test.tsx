@@ -24,7 +24,7 @@ describe('P4 · ficha del cliente', () => {
   it('muestra datos, membresía y motos', async () => {
     await abrir('Carlos');
     expect(await screen.findByRole('heading', { name: 'Carlos Pérez' })).toBeInTheDocument();
-    expect(screen.getByText(/900000001/)).toBeInTheDocument();
+    expect(screen.queryByText(/900000001/)).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: /^\d+/ }).getAttribute('href')).toMatch(/^tel:/);
     expect(screen.getByRole('heading', { name: 'Membresía' })).toBeInTheDocument();
     expect(screen.getByRole('img', { name: 'Placa ABC12D' })).toBeInTheDocument();
@@ -153,7 +153,7 @@ describe('P4 · ficha del cliente', () => {
     const u = userEvent.setup();
     await u.click(await screen.findByRole('button', { name: 'Editar' }));
     const hoja = await screen.findByRole('dialog');
-    const nombre = within(hoja).getByLabelText('Nombre completo *');
+    const nombre = within(hoja).getByLabelText('Nombre(s) *');
     await u.clear(nombre);
     await u.type(nombre, 'María G. Gómez');
     await u.click(within(hoja).getByRole('button', { name: 'Guardar' }));

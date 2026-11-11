@@ -59,7 +59,6 @@ export function PaginaClientes() {
 
   const columnas: Columna<ClienteResumen>[] = [
     { clave: 'nombre', encabezado: 'Nombre', celda: (c) => <Link to={`/clientes/${c.id}`} className="font-semibold text-asfalto-900 hover:underline">{c.nombre}</Link> },
-    { clave: 'documento', encabezado: 'Documento', celda: (c) => c.documento },
     { clave: 'telefono', encabezado: 'Teléfono', celda: (c) => c.telefono },
     { clave: 'placas', encabezado: 'Placas', celda: (c) => <Placas placas={c.placas} /> },
     { clave: 'membresia', encabezado: 'Membresía', celda: (c) => <InsigniaEstado estado={c.membresia?.estado ?? null} /> },

@@ -49,7 +49,7 @@ export function HojaEditarCliente({ abierta, alCerrar, cliente, esAdmin }: HojaE
       >
         <FormularioClienteEdicion
           id={ID_FORM}
-          valores={{ nombre: cliente.nombre, documento: cliente.documento, telefono: cliente.telefono, email: cliente.email ?? '', notas: cliente.notas ?? '' }}
+          valores={{ nombre: cliente.nombre, telefono: cliente.telefono, email: cliente.email ?? '', notas: cliente.notas ?? '' }}
           alCambiarSucio={setSucio}
           alEnviando={setEnviando}
           alEnviar={async (datos) => {

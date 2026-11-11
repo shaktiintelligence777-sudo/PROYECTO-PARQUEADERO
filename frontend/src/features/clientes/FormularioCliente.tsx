@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Plus, Trash2 } from 'lucide-react';
-import { useEffect } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import { useFieldArray, useForm, type Control, type FieldErrors, type UseFormRegister } from 'react-hook-form';
 import type { z } from 'zod';
 import type { ClienteCrear, ClienteEditar } from '@/api';
@@ -20,18 +20,16 @@ interface CamposProps<T extends ValoresClienteEdicion> {
   errors: FieldErrors<ValoresClienteEdicion>;
 }
 
-/** Los cinco datos del cliente, comunes al alta (P5) y a la edición (hoja de la ficha). */
-function CamposCliente<T extends ValoresClienteEdicion>({ register, errors }: CamposProps<T>) {
+/** Los datos del cliente, comunes al alta (P5) y a la edición (hoja de la ficha). */
+function CamposCliente<T extends ValoresClienteEdicion>({ register, errors, despuesDelNombre }: CamposProps<T> & { despuesDelNombre?: ReactNode }) {
   const r = register as unknown as UseFormRegister<ValoresClienteEdicion>;
   return (
     <>
-      <Campo etiqueta="Nombre completo *" error={errors.nombre?.message}>
-        <Entrada autoComplete="name" maxLength={LIMITES.nombre[1]} {...r('nombre')} />
+      <Campo etiqueta="Nombre(s) *" error={errors.nombre?.message}>
+        <Entrada autoComplete="given-name" maxLength={LIMITES.nombre[1]} {...r('nombre')} />
       </Campo>
-      <Campo etiqueta="Documento *" error={errors.documento?.message}>
-        <Entrada autoComplete="off" maxLength={20} {...r('documento')} />
-      </Campo>
-      <Campo etiqueta="Teléfono *" error={errors.telefono?.message}>
+      {despuesDelNombre}
+      <Campo etiqueta="Teléfono (opcional)" error={errors.telefono?.message}>
         <Entrada type="tel" inputMode="tel" autoComplete="tel" maxLength={20} {...r('telefono')} />
       </Campo>
       <Campo etiqueta="Email (opcional)" ayuda="Para enviarle avisos de pago" error={errors.email?.message}>
@@ -63,7 +61,7 @@ export function FormularioClienteAlta({ placaInicial = '', alEnviar, alCambiarSu
   const { register, control, handleSubmit, setError, formState: { errors, isDirty, isSubmitting } } = useForm<ValoresClienteAlta, unknown, SalidaAlta>({
     resolver: zodResolver(esquemaClienteAlta),
     mode: 'onTouched',
-    defaultValues: { nombre: '', documento: '', telefono: '', email: '', notas: '', motos: [{ ...MOTO_VACIA, placa: placaInicial }] },
+    defaultValues: { nombre: '', apellidos: '', telefono: '', email: '', notas: '', motos: [{ ...MOTO_VACIA, placa: placaInicial }] },
   });
   const { fields, append, remove } = useFieldArray({ control, name: 'motos' });
   useAvisarCambios(isDirty, alCambiarSucio);
@@ -79,7 +77,15 @@ export function FormularioClienteAlta({ placaInicial = '', alEnviar, alCambiarSu
 
   return (
     <form onSubmit={(e) => void enviar(e)} noValidate className="space-y-4">
-      <CamposCliente register={register} errors={errors} />
+      <CamposCliente
+        register={register}
+        errors={errors}
+        despuesDelNombre={(
+          <Campo etiqueta="Apellido(s) (opcional)" error={errors.apellidos?.message}>
+            <Entrada autoComplete="family-name" maxLength={LIMITES.nombre[1]} {...register('apellidos')} />
+          </Campo>
+        )}
+      />
 
       <fieldset className="space-y-3">
         <legend className="mb-1 text-subtitulo text-asfalto-900">Moto</legend>
