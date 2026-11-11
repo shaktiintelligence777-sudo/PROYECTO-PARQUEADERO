@@ -808,7 +808,11 @@ export class MockApi implements ApiClient {
         const p = Object.fromEntries(new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Bogota', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(new Date(iso)).map((x) => [x.type, x.value]));
         return `${p.year}-${p.month}-${p.day} ${p.hour}:${p.minute}`;
       };
-      const celda = (s: string | number) => { const t = String(s); return /[",\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t; };
+      // Inyección de fórmulas (B-08 regla 7, C-03 H-06): un texto que empieza por = + - @ se prefija con '.
+      const celda = (s: string | number) => {
+        const t = typeof s === 'string' && /^[=+\-@]/.test(s) ? `'${s}` : String(s);
+        return /[",\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t;
+      };
       const filas = this.filtrarHistorial(db, f).map((e) => [
         e.moto.placa, e.cliente.nombre, e.cliente.documento, hora(e.entrada_en), hora(e.salida_en), e.duracion_minutos,
         e.operador_entrada.nombre, e.operador_salida?.nombre ?? '',
