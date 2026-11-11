@@ -96,6 +96,7 @@ describe('P4 · lista de clientes', () => {
     montar('/clientes', e);
     await lista();
     const tabla = screen.getByRole('table', { name: 'Tabla de clientes' });
-    ['Nombre', 'Documento', 'Teléfono', 'Placas', 'Membresía', 'Vence'].forEach((t) => expect(within(tabla).getByRole('columnheader', { name: t })).toBeInTheDocument());
+    ['Nombre', 'Teléfono', 'Placas', 'Membresía', 'Vence'].forEach((t) => expect(within(tabla).getByRole('columnheader', { name: t })).toBeInTheDocument());
+    expect(within(tabla).queryByRole('columnheader', { name: 'Documento' })).not.toBeInTheDocument();
   });
 });

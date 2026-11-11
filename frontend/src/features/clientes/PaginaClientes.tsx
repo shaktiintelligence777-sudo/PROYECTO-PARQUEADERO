@@ -58,12 +58,11 @@ export function PaginaClientes() {
   const paginas = datos ? Math.max(1, Math.ceil(datos.total / datos.por_pagina)) : 1;
 
   const columnas: Columna<ClienteResumen>[] = [
-    { clave: 'nombre', encabezado: 'Nombre', ordenar: (c) => c.nombre, celda: (c) => <Link to={`/clientes/${c.id}`} className="font-semibold text-asfalto-900 hover:underline">{c.nombre}</Link> },
-    { clave: 'documento', encabezado: 'Documento', celda: (c) => c.documento },
-    { clave: 'telefono', encabezado: 'Teléfono', ordenar: (c) => c.telefono || null, celda: (c) => c.telefono },
-    { clave: 'placas', encabezado: 'Placas', ordenar: (c) => c.placas[0] ?? null, celda: (c) => <Placas placas={c.placas} /> },
-    { clave: 'membresia', encabezado: 'Membresía', ordenar: (c) => c.membresia?.estado ?? null, celda: (c) => <InsigniaEstado estado={c.membresia?.estado ?? null} /> },
-    { clave: 'vence', encabezado: 'Vence', ordenar: (c) => (c.membresia ? Date.parse(c.membresia.fecha_vencimiento) : null), celda: (c) => (c.membresia ? formatoFecha(c.membresia.fecha_vencimiento) : '—') },
+    { clave: 'nombre', encabezado: 'Nombre', celda: (c) => <Link to={`/clientes/${c.id}`} className="font-semibold text-asfalto-900 hover:underline">{c.nombre}</Link> },
+    { clave: 'telefono', encabezado: 'Teléfono', celda: (c) => c.telefono },
+    { clave: 'placas', encabezado: 'Placas', celda: (c) => <Placas placas={c.placas} /> },
+    { clave: 'membresia', encabezado: 'Membresía', celda: (c) => <InsigniaEstado estado={c.membresia?.estado ?? null} /> },
+    { clave: 'vence', encabezado: 'Vence', celda: (c) => (c.membresia ? formatoFecha(c.membresia.fecha_vencimiento) : '—') },
   ];
 
   return (
