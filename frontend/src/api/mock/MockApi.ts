@@ -512,6 +512,7 @@ export class MockApi implements ApiClient {
       const lista = db.membresias
         .filter((m) => {
           if (f.estado && this.estado(db, m) !== f.estado) return false;
+          if (!f.estado && !f.cliente_id && m.cancelada_en) return false; // sin filtro: solo las no canceladas (contrato)
           if (f.cliente_id && m.cliente_id !== f.cliente_id) return false;
           if (q) {
             const c = this.cliente(db, m.cliente_id);

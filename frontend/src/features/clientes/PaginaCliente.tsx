@@ -10,7 +10,7 @@ import {
 } from '@/ui';
 import { HojaEditarCliente } from './HojaEditarCliente';
 import { HojaMoto } from './HojaMoto';
-import { SeccionMembresia } from './SeccionMembresia';
+import { SeccionMembresia } from '@/features/membresias/SeccionMembresia';
 
 const METODOS = { efectivo: 'Efectivo', transferencia: 'Transferencia', otro: 'Otro' } as const;
 type Pestana = 'pagos' | 'accesos';

@@ -3,6 +3,9 @@ import { PaginaAcceso } from '@/features/accesos/PaginaAcceso';
 import { PaginaCliente } from '@/features/clientes/PaginaCliente';
 import { PaginaClientes } from '@/features/clientes/PaginaClientes';
 import { PaginaNuevoCliente } from '@/features/clientes/PaginaNuevoCliente';
+import { PaginaMembresias } from '@/features/membresias/PaginaMembresias';
+import { PaginaNuevoPago } from '@/features/pagos/PaginaNuevoPago';
+import { PaginaPagos } from '@/features/pagos/PaginaPagos';
 import { PaginaLogin } from '@/features/auth/PaginaLogin';
 import { DisposicionApp } from './DisposicionApp';
 import { RutaProtegida } from './RutaProtegida';
@@ -42,6 +45,9 @@ const PAGINAS: Record<string, JSX.Element> = {
   '/clientes': <PaginaClientes />,
   '/clientes/nuevo': <PaginaNuevoCliente />,
   '/clientes/:id': <PaginaCliente />,
+  '/membresias': <PaginaMembresias />,
+  '/pagos': <PaginaPagos />,
+  '/pagos/nuevo': <PaginaNuevoPago />,
 };
 
 export function RutasApp() {
