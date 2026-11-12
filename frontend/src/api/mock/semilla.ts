@@ -3,7 +3,9 @@ import type { Db, FilaCliente, FilaEstancia, FilaMembresia, FilaMoto, FilaNotifi
 import type { Reloj } from './reloj';
 import { sumarDias } from './reglas';
 
-export const VERSION_DB = 1;
+// Subir este número cada vez que cambie la semilla o la forma de los datos: los navegadores con una base
+// guardada de otra versión la descartan y vuelven a sembrar (si no, siguen viendo el demo viejo).
+export const VERSION_DB = 2;
 export const EMAIL_ADMIN = 'demo@parqueadero.app';
 export const EMAIL_OPERADOR = 'operador@parqueadero.app';
 export const PASSWORD_DEMO = 'demo1234';
