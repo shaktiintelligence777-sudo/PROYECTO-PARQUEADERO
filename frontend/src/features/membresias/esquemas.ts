@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { formatoDinero } from '@/lib/formato';
-import { sumarDias } from '@/lib/fechas';
+import { finDePeriodo } from '@/lib/fechas';
 
 export const METODOS = [
   { valor: 'efectivo', etiqueta: 'Efectivo' },
@@ -24,8 +24,8 @@ export const MENSAJES = {
 /** Mensaje de la nota obligatoria de un pago (RN-43): incluye el monto sugerido. */
 export const mensajeNotaPago = (sugerido: number) => `Explica por qué el monto es distinto al sugerido (${formatoDinero(sugerido)}).`;
 
-/** Fecha en que termina una membresía que empieza en `inicio`: inicio + duración − 1 (RN-31). */
-export const ultimoDiaCubierto = (inicio: string, duracionDias: number) => sumarDias(inicio, duracionDias - 1);
+/** Fecha en que termina una membresía que empieza en `inicio`: un mes después menos un día en planes mensuales; inicio + duración − 1 en los demás (RN-31). */
+export const ultimoDiaCubierto = (inicio: string, duracionDias: number) => finDePeriodo(inicio, duracionDias, 1);
 
 export const esquemaCrearMembresia = (precioPlan: number) =>
   z.object({

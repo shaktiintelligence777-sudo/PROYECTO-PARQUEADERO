@@ -644,7 +644,7 @@ export class MockApi implements ApiClient {
     if (m.cancelada_en) throw err(409, 'membresia_cancelada', 'La membresía está cancelada.');
     const plan = this.plan(db, m.plan_id);
     if (!plan.activo) throw err(409, 'plan_inactivo', 'El plan de esta membresía está inactivo. Cámbialo antes de cobrar.');
-    return { m, plan, ...periodoDePago(m.fecha_vencimiento, this.reloj.hoy(), plan.duracion_dias, periodos) };
+    return { m, plan, ...periodoDePago(m, plan.duracion_dias, periodos) };
   }
 
   previsualizarPago(d: { membresia_id: string; periodos?: number }): Promise<PagoVistaPrevia> {

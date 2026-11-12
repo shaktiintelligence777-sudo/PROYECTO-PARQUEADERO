@@ -6,6 +6,7 @@ import { MockApi } from './MockApi';
 import { CLAVE_DB } from './almacen';
 import { relojFijo } from './reloj';
 import { sumarDias } from './reglas';
+import { sumarMeses } from '@/lib/fechas';
 import { EMAIL_ADMIN, EMAIL_OPERADOR, PASSWORD_DEMO, VERSION_DB, crearSemilla } from './semilla';
 
 const reloj = relojFijo('2026-11-10T17:00:00Z'); // 12:00 en Bogotá
@@ -125,21 +126,30 @@ describe('A-02 · MockApi', () => {
     const previo = await api.previsualizarPago({ membresia_id: m.id });
     const r = await api.registrarPago({ membresia_id: m.id, monto: 85000, metodo: 'efectivo' });
     expect(r.pago.periodo_desde).toBe(sumarDias(m.fecha_vencimiento, 1));
-    expect(r.membresia.fecha_vencimiento).toBe(sumarDias(m.fecha_vencimiento, 30));
+    expect(r.membresia.fecha_vencimiento).toBe(sumarMeses(m.fecha_vencimiento, 1));
     expect(r.pago.periodo_hasta).toBe(previo.periodo_hasta);
     expect(r.membresia.estado).toBe('activa');
   });
 
-  it('CA-9 pago con membresía vencida empieza hoy; previsualizar no modifica nada (CB-3)', async () => {
+  it('CA-9 pago con membresía vencida renueva desde el vencimiento anterior, no desde hoy; previsualizar no modifica nada (CB-3)', async () => {
     const m = await membresiaDe('STU44N'); // vencida hace 4 días
     const antes = JSON.stringify(await api.obtenerMembresia(m.id));
     const previo = await api.previsualizarPago({ membresia_id: m.id, periodos: 3 });
-    expect(previo.periodo_desde).toBe(hoy);
+    expect(previo.periodo_desde).toBe(sumarDias(m.fecha_vencimiento, 1));
     expect(previo.monto_sugerido).toBe(255000);
     expect(JSON.stringify(await api.obtenerMembresia(m.id))).toBe(antes);
     const r = await api.registrarPago({ membresia_id: m.id, monto: 255000, metodo: 'transferencia', periodos: 3 });
-    expect(r.pago.periodo_desde).toBe(hoy);
+    expect(r.pago.periodo_desde).toBe(sumarDias(m.fecha_vencimiento, 1));
     expect(r.pago.periodo_hasta).toBe(previo.periodo_hasta);
+    expect(r.membresia.fecha_vencimiento).toBe(sumarMeses(m.fecha_vencimiento, 3));
+  });
+
+  it('CA-9b pago tardío de un periodo: conserva la fecha fija y la deja activa', async () => {
+    const m = await membresiaDe('VWX55P'); // vencida hace 10 días
+    const r = await api.registrarPago({ membresia_id: m.id, monto: 85000, metodo: 'efectivo' });
+    expect(r.membresia.fecha_vencimiento).toBe(sumarMeses(m.fecha_vencimiento, 1));
+    expect(r.membresia.fecha_vencimiento).toBe('2026-11-30'); // vencía el 31 oct: el ciclo sigue el día 1
+    expect(r.membresia.estado).toBe('activa');
   });
 
   it('CA-10 monto distinto del sugerido sin nota → 422 validacion con detalles[0].campo = "nota"', async () => {
