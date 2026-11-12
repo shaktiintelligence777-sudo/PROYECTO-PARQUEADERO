@@ -6,7 +6,7 @@ import { MockApi } from './MockApi';
 import { CLAVE_DB } from './almacen';
 import { relojFijo } from './reloj';
 import { sumarDias } from './reglas';
-import { EMAIL_ADMIN, EMAIL_OPERADOR, PASSWORD_DEMO } from './semilla';
+import { EMAIL_ADMIN, EMAIL_OPERADOR, PASSWORD_DEMO, VERSION_DB, crearSemilla } from './semilla';
 
 const reloj = relojFijo('2026-11-10T17:00:00Z'); // 12:00 en Bogotá
 const hoy = reloj.hoy();
@@ -213,6 +213,13 @@ describe('A-02 · MockApi', () => {
     expect((await api.listarClientes()).total).toBe(12);
     localStorage.setItem(CLAVE_DB, JSON.stringify({ version: 99 }));
     expect((await api.listarClientes()).total).toBe(12);
+  });
+
+  it('CA-16 demo desactualizado: una base guardada de la versión anterior se descarta y se vuelve a sembrar', async () => {
+    const vieja = { ...crearSemilla(relojFijo('2026-11-10T17:00:00Z')), version: VERSION_DB - 1 };
+    vieja.configuracion.nombre_parqueadero = 'Parqueadero Demo';
+    localStorage.setItem(CLAVE_DB, JSON.stringify(vieja));
+    expect((await api.obtenerConfiguracion()).nombre_parqueadero).toBe('Parqueadero Las Bermúdez');
   });
 
   it('paginación con la forma del contrato', async () => {
