@@ -67,3 +67,13 @@ export function formatoDiasRestantes(dias: number): string {
 export function normalizarPlaca(texto: string): string {
   return texto.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
 }
+
+/** Hora actual en America/Bogota para el reloj: "9:05:03" y "a. m." / "p. m." (formato de 12 horas). */
+export function formatoRelojBogota(instante: Date): { hora: string; meridiano: string } {
+  const f = new Intl.DateTimeFormat('es-CO', {
+    timeZone: ZONA, hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true,
+  });
+  const p = Object.fromEntries(f.formatToParts(instante).map((x) => [x.type, x.value]));
+  const periodo = (p.dayPeriod ?? '').toLowerCase().replace(/[\s\u202f\u00a0.]/g, '');
+  return { hora: `${p.hour}:${p.minute}:${p.second}`, meridiano: periodo.startsWith('p') ? 'p. m.' : 'a. m.' };
+}
