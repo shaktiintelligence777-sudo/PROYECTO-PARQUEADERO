@@ -22,6 +22,7 @@ export * from './InsigniaEstado';
 export * from './ListaElementos';
 export * from './Paginador';
 export * from './Placa';
+export * from './RelojBogota';
 export * from './Spinner';
 export * from './Tabla';
 export * from './Tarjeta';

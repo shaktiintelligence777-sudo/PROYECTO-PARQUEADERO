@@ -2,6 +2,7 @@ import { Banknote, History, IdCard, KeyRound, LayoutDashboard, LogOut, MoreHoriz
 import { useState, type ReactNode } from 'react';
 import { NavLink } from 'react-router-dom';
 import { Hoja } from './Hoja';
+import { RelojBogota } from './RelojBogota';
 import { cx } from './cx';
 
 export interface ArmazonProps {
@@ -38,7 +39,8 @@ export function Armazon({ usuario, alCerrarSesion, alCambiarPassword, children }
     <div className="min-h-screen bg-asfalto-50 text-asfalto-900">
       {/* Escritorio: barra lateral de 240 px */}
       <nav aria-label="Navegación lateral" className="fixed bottom-0 left-0 top-[var(--altura-banner,0px)] hidden w-60 flex-col bg-asfalto-900 p-4 text-blanco md:flex">
-        <span className="mb-6 text-subtitulo">Parqueadero Las Bermúdez</span>
+        <span className="mb-4 text-subtitulo">Parqueadero Las Bermúdez</span>
+        <RelojBogota className="mb-6" />
         <ul className="flex flex-1 flex-col gap-1">
           {visibles.map((d) => (
             <li key={d.ruta}>
@@ -68,9 +70,12 @@ export function Armazon({ usuario, alCerrarSesion, alCambiarPassword, children }
       </nav>
 
       {/* Móvil: cabecera de 56 px */}
-      <header className="flex h-14 items-center justify-between bg-asfalto-900 px-4 text-blanco md:hidden">
-        <span className="min-w-0 truncate text-subtitulo">Parqueadero Las Bermúdez</span>
-        <span className="truncate text-apoyo">{usuario.nombre}</span>
+      <header className="bg-asfalto-900 px-4 text-blanco md:hidden">
+        <div className="flex h-14 items-center justify-between">
+          <span className="min-w-0 truncate text-subtitulo">Parqueadero Las Bermúdez</span>
+          <span className="truncate text-apoyo">{usuario.nombre}</span>
+        </div>
+        <RelojBogota className="justify-center pb-3" />
       </header>
 
       <main className="mx-auto max-w-contenido px-4 pb-24 pt-4 md:ml-60 md:px-6 md:pb-6 md:pt-6">{children}</main>
