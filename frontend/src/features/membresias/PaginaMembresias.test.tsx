@@ -66,4 +66,15 @@ describe('P6 · membresías', () => {
     const tabla = screen.getByRole('table', { name: 'Tabla de membresías' });
     ['Cliente', 'Plan', 'Inicio', 'Vence', 'Estado', 'Acciones'].forEach((t) => expect(within(tabla).getByRole('columnheader', { name: t })).toBeInTheDocument());
   });
+
+  it('CA-ORD escritorio: las cabeceras ordenables tienen botón y ordenan al hacer clic', async () => {
+    montar('/membresias', e);
+    await lista();
+    const tabla = screen.getByRole('table', { name: 'Tabla de membresías' });
+    ['Cliente', 'Plan', 'Inicio', 'Vence', 'Estado'].forEach((t) =>
+      expect(within(tabla).getByRole('button', { name: `Ordenar por ${t}` })).toBeInTheDocument());
+    expect(within(tabla).queryByRole('button', { name: 'Ordenar por Acciones' })).not.toBeInTheDocument();
+    await userEvent.click(within(tabla).getByRole('button', { name: 'Ordenar por Cliente' }));
+    expect(within(tabla).getByRole('columnheader', { name: /Cliente/ })).toHaveAttribute('aria-sort', 'ascending');
+  });
 });

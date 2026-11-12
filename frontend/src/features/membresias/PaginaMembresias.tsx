@@ -46,11 +46,11 @@ export function PaginaMembresias() {
   const paginas = datos ? Math.max(1, Math.ceil(datos.total / datos.por_pagina)) : 1;
 
   const columnas: Columna<Membresia>[] = [
-    { clave: 'cliente', encabezado: 'Cliente', celda: (m) => <Link to={`/clientes/${m.cliente.id}`} className="font-semibold text-asfalto-900 hover:underline">{m.cliente.nombre}</Link> },
-    { clave: 'plan', encabezado: 'Plan', celda: (m) => m.plan.nombre },
-    { clave: 'inicio', encabezado: 'Inicio', celda: (m) => formatoFecha(m.fecha_inicio) },
-    { clave: 'vence', encabezado: 'Vence', celda: (m) => formatoFecha(m.fecha_vencimiento) },
-    { clave: 'estado', encabezado: 'Estado', celda: (m) => <InsigniaEstado estado={m.estado} /> },
+    { clave: 'cliente', encabezado: 'Cliente', ordenar: (m) => m.cliente.nombre, celda: (m) => <Link to={`/clientes/${m.cliente.id}`} className="font-semibold text-asfalto-900 hover:underline">{m.cliente.nombre}</Link> },
+    { clave: 'plan', encabezado: 'Plan', ordenar: (m) => m.plan.nombre, celda: (m) => m.plan.nombre },
+    { clave: 'inicio', encabezado: 'Inicio', ordenar: (m) => Date.parse(m.fecha_inicio), celda: (m) => formatoFecha(m.fecha_inicio) },
+    { clave: 'vence', encabezado: 'Vence', ordenar: (m) => Date.parse(m.fecha_vencimiento), celda: (m) => formatoFecha(m.fecha_vencimiento) },
+    { clave: 'estado', encabezado: 'Estado', ordenar: (m) => m.estado, celda: (m) => <InsigniaEstado estado={m.estado} /> },
     { clave: 'acciones', encabezado: 'Acciones', celda: (m) => <Renovar m={m} /> },
   ];
 
