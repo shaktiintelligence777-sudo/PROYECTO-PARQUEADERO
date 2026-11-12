@@ -49,7 +49,7 @@ export function Galeria() {
         <Campo etiqueta="Nombre" ayuda="Como aparece en el documento."><Entrada defaultValue="Carlos Pérez" /></Campo>
         <Campo etiqueta="Teléfono" error="Escribe entre 7 y 15 dígitos."><Entrada defaultValue="abc" /></Campo>
         <Campo etiqueta="Notas"><AreaTexto defaultValue="" /></Campo>
-        <Campo etiqueta="Plan"><Selector defaultValue="30"><option value="30">Mensual</option><option value="15">Quincenal</option></Selector></Campo>
+        <Campo etiqueta="Plan"><Selector defaultValue="30"><option value="30">Mensual</option></Selector></Campo>
         <Campo etiqueta="Placa"><EntradaPlaca value={placa} onChange={setPlaca} /></Campo>
         <Campo etiqueta="Monto"><EntradaDinero value={dinero} onChange={setDinero} /></Campo>
         <Buscador alBuscar={() => undefined} placeholder="Nombre, documento o placa" />

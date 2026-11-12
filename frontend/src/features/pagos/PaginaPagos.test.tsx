@@ -61,12 +61,12 @@ describe('Lista de pagos', () => {
   it('CA-17 el admin anula el último pago con motivo y queda tachado con "Anulado"', async () => {
     await iniciarSesion(e, 'admin');
     const m = await membresiaDe('Carlos');
-    await e.api.registrarPago({ membresia_id: m.id, monto: 60000, metodo: 'efectivo' });
+    await e.api.registrarPago({ membresia_id: m.id, monto: 85000, metodo: 'efectivo' });
     montar('/pagos', e);
     const u = userEvent.setup();
     await u.click(within(await lista()).getAllByRole('button', { name: /Carlos Pérez/ })[0]!);
     await u.click(await screen.findByRole('button', { name: 'Anular pago' }));
-    expect(await screen.findByText('¿Anular este pago de $60.000?')).toBeInTheDocument();
+    expect(await screen.findByText('¿Anular este pago de $85.000?')).toBeInTheDocument();
     const dialogo = screen.getAllByRole('dialog').at(-1)!;
     await u.type(within(dialogo).getByLabelText('Motivo'), 'Error de digitación');
     await u.click(within(dialogo).getByRole('button', { name: 'Anular pago' }));
@@ -93,7 +93,7 @@ describe('Lista de pagos', () => {
 
   it('CA-15 el operador no ve "Anular pago"', async () => {
     const m = await membresiaDe('Carlos');
-    await e.api.registrarPago({ membresia_id: m.id, monto: 60000, metodo: 'efectivo' });
+    await e.api.registrarPago({ membresia_id: m.id, monto: 85000, metodo: 'efectivo' });
     montar('/pagos', e);
     await userEvent.click(within(await lista()).getAllByRole('button', { name: /Carlos Pérez/ })[0]!);
     expect(await screen.findByRole('heading', { name: 'Detalle del pago' })).toBeInTheDocument();

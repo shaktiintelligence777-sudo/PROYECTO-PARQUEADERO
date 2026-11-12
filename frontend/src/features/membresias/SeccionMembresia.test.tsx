@@ -37,7 +37,7 @@ describe('Tarjeta de membresía', () => {
     await u.click(screen.getByRole('button', { name: 'Crear membresía' }));
     const hoja = await llenarCrear(u);
     expect(within(hoja).getByText('Cubre del 10 nov 2026 al 9 dic 2026')).toBeInTheDocument();
-    expect(within(hoja).getByLabelText('Monto *')).toHaveValue('$ 60.000');
+    expect(within(hoja).getByLabelText('Monto *')).toHaveValue('$ 85.000');
     await u.click(within(hoja).getByRole('button', { name: 'Crear y registrar pago' }));
     expect(await screen.findByText('Membresía creada. Vence el 9 dic 2026.')).toBeInTheDocument();
     await waitFor(() => expect(within(tarjeta()).getByText('Activa')).toBeInTheDocument());
@@ -83,6 +83,9 @@ describe('Tarjeta de membresía', () => {
   });
 
   it('CA-13 cambiar plan muestra el plan nuevo con la misma fecha de vencimiento', async () => {
+    await iniciarSesion(e, 'admin'); // solo para probar el cambio a otro plan: crear un segundo plan
+    await e.api.crearPlan({ nombre: 'Quincenal', duracion_dias: 15, precio: 45000 });
+    await iniciarSesion(e);
     const id = await abrir('Carlos');
     const antes = (await e.api.obtenerCliente(id)).membresia!;
     const u = userEvent.setup();
@@ -125,6 +128,6 @@ describe('Tarjeta de membresía', () => {
     const id = await abrir('Carlos');
     const m = (await e.api.obtenerCliente(id)).membresia!;
     expect(await screen.findByRole('link', { name: 'Registrar pago' })).toHaveAttribute('href', `/pagos/nuevo?membresia=${m.id}`);
-    expect(within(tarjeta()).getByText(/^Mensual · \$60\.000$/)).toBeInTheDocument();
+    expect(within(tarjeta()).getByText(/^Mensual · \$85\.000$/)).toBeInTheDocument();
   });
 });

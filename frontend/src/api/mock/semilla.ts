@@ -19,23 +19,23 @@ export function instanteBogota(fecha: string, hora: string): string {
 
 interface ClienteSemilla {
   nombre: string; email: string | null; motos: [string, string, string][];
-  plan: 0 | 1 | 2; venc: number | null; cancelada?: boolean; inicioHoy?: boolean;
+  plan: 0; venc: number | null; cancelada?: boolean; inicioHoy?: boolean;
 }
 
 // Documentos 900000xxx y emails @example.com: datos ficticios.
 const CLIENTES: ClienteSemilla[] = [
   { nombre: 'Carlos Pérez', email: 'carlos.perez@example.com', motos: [['ABC12D', 'Yamaha', 'Negro']], plan: 0, venc: 29, inicioHoy: true },
-  { nombre: 'María Gómez', email: 'maria.gomez@example.com', motos: [['XYZ34E', 'Honda', 'Rojo']], plan: 2, venc: 6, inicioHoy: true },
+  { nombre: 'María Gómez', email: 'maria.gomez@example.com', motos: [['XYZ34E', 'Honda', 'Rojo']], plan: 0, venc: 6, inicioHoy: true },
   { nombre: 'Andrés Rojas', email: 'andres.rojas@example.com', motos: [['MNO56F', 'Suzuki', 'Azul'], ['MNP57G', 'AKT', 'Blanco']], plan: 0, venc: 18 },
-  { nombre: 'Laura Díaz', email: 'laura.diaz@example.com', motos: [['QRS78G', 'Bajaj', 'Negro']], plan: 1, venc: 9 },
+  { nombre: 'Laura Díaz', email: 'laura.diaz@example.com', motos: [['QRS78G', 'Bajaj', 'Negro']], plan: 0, venc: 9 },
   { nombre: 'Juan Torres', email: 'juan.torres@example.com', motos: [['TUV90H', 'Hero', 'Gris']], plan: 0, venc: 7 },
-  { nombre: 'Sofía Herrera', email: 'sofia.herrera@example.com', motos: [['GHI11J', 'Yamaha', 'Azul']], plan: 2, venc: 5 },
+  { nombre: 'Sofía Herrera', email: 'sofia.herrera@example.com', motos: [['GHI11J', 'Yamaha', 'Azul']], plan: 0, venc: 5 },
   { nombre: 'José Martínez', email: 'jose.martinez@example.com', motos: [['JKL22K', 'Honda', 'Negro']], plan: 0, venc: 2 },
-  { nombre: 'Valentina Ruiz', email: 'valentina.ruiz@example.com', motos: [['PQR33L', 'Suzuki', 'Rojo'], ['PQR34M', 'Yamaha', 'Verde']], plan: 1, venc: 0 },
+  { nombre: 'Valentina Ruiz', email: 'valentina.ruiz@example.com', motos: [['PQR33L', 'Suzuki', 'Rojo'], ['PQR34M', 'Yamaha', 'Verde']], plan: 0, venc: 0 },
   { nombre: 'Camilo Ortiz', email: 'camilo.ortiz@example.com', motos: [['STU44N', 'AKT', 'Negro']], plan: 0, venc: -4 },
-  { nombre: 'Daniela Castro', email: null, motos: [['VWX55P', 'Bajaj', 'Blanco']], plan: 2, venc: -10 },
+  { nombre: 'Daniela Castro', email: null, motos: [['VWX55P', 'Bajaj', 'Blanco']], plan: 0, venc: -10 },
   { nombre: 'Felipe Vargas', email: 'felipe.vargas@example.com', motos: [['YZA66Q', 'Hero', 'Azul']], plan: 0, venc: 8, cancelada: true },
-  { nombre: 'Natalia Mejía', email: 'natalia.mejia@example.com', motos: [['BCD77R', 'Honda', 'Gris']], plan: 1, venc: null },
+  { nombre: 'Natalia Mejía', email: 'natalia.mejia@example.com', motos: [['BCD77R', 'Honda', 'Gris']], plan: 0, venc: null },
 ];
 
 /** Datos iniciales; las fechas son relativas a "hoy" para que el demo siempre muestre todos los estados. */
@@ -48,9 +48,7 @@ export function crearSemilla(reloj: Reloj): Db {
   const operador = idSemilla(T.usuario, 2);
 
   const planes: FilaPlan[] = [
-    { id: idSemilla(T.plan, 1), nombre: 'Mensual', duracion_dias: 30, precio: 60000, activo: true, creado_en: creado },
-    { id: idSemilla(T.plan, 2), nombre: 'Quincenal', duracion_dias: 15, precio: 35000, activo: true, creado_en: creado },
-    { id: idSemilla(T.plan, 3), nombre: 'Semanal', duracion_dias: 7, precio: 18000, activo: true, creado_en: creado },
+    { id: idSemilla(T.plan, 1), nombre: 'Mensual', duracion_dias: 30, precio: 85000, activo: true, creado_en: creado },
   ];
 
   const clientes: FilaCliente[] = [];

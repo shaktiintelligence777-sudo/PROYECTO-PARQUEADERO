@@ -123,7 +123,7 @@ describe('A-02 · MockApi', () => {
     const m = await membresiaDe('JKL22K'); // vence en 2 días, Mensual
     expect(m.dias_restantes).toBe(2);
     const previo = await api.previsualizarPago({ membresia_id: m.id });
-    const r = await api.registrarPago({ membresia_id: m.id, monto: 60000, metodo: 'efectivo' });
+    const r = await api.registrarPago({ membresia_id: m.id, monto: 85000, metodo: 'efectivo' });
     expect(r.pago.periodo_desde).toBe(sumarDias(m.fecha_vencimiento, 1));
     expect(r.membresia.fecha_vencimiento).toBe(sumarDias(m.fecha_vencimiento, 30));
     expect(r.pago.periodo_hasta).toBe(previo.periodo_hasta);
@@ -135,9 +135,9 @@ describe('A-02 · MockApi', () => {
     const antes = JSON.stringify(await api.obtenerMembresia(m.id));
     const previo = await api.previsualizarPago({ membresia_id: m.id, periodos: 3 });
     expect(previo.periodo_desde).toBe(hoy);
-    expect(previo.monto_sugerido).toBe(180000);
+    expect(previo.monto_sugerido).toBe(255000);
     expect(JSON.stringify(await api.obtenerMembresia(m.id))).toBe(antes);
-    const r = await api.registrarPago({ membresia_id: m.id, monto: 180000, metodo: 'transferencia', periodos: 3 });
+    const r = await api.registrarPago({ membresia_id: m.id, monto: 255000, metodo: 'transferencia', periodos: 3 });
     expect(r.pago.periodo_desde).toBe(hoy);
     expect(r.pago.periodo_hasta).toBe(previo.periodo_hasta);
   });
@@ -151,8 +151,8 @@ describe('A-02 · MockApi', () => {
 
   it('CA-11 anular el último pago restaura el vencimiento; otro pago o el inicial → 409 pago_no_anulable', async () => {
     const m = await membresiaDe('JKL22K');
-    const r1 = await api.registrarPago({ membresia_id: m.id, monto: 60000, metodo: 'efectivo' });
-    const r2 = await api.registrarPago({ membresia_id: m.id, monto: 60000, metodo: 'efectivo' });
+    const r1 = await api.registrarPago({ membresia_id: m.id, monto: 85000, metodo: 'efectivo' });
+    const r2 = await api.registrarPago({ membresia_id: m.id, monto: 85000, metodo: 'efectivo' });
     await falla(api.anularPago(r1.pago.id, { motivo: 'Error de digitación' }), 409, 'pago_no_anulable');
     const a = await api.anularPago(r2.pago.id, { motivo: 'Error de digitación' });
     expect(a.pago.anulado).toBe(true);
@@ -172,11 +172,11 @@ describe('A-02 · MockApi', () => {
 
   it('crear membresía nace con su pago (RN-31, D-9) y valida el rango de fecha_inicio', async () => {
     const cli = (await api.listarClientes({ q: 'Natalia' })).items[0]!;
-    const plan = (await api.listarPlanes()).items.find((p) => p.nombre === 'Semanal')!;
+    const plan = (await api.listarPlanes()).items.find((p) => p.nombre === 'Mensual')!;
     const e = await falla(api.crearMembresia({ cliente_id: cli.id, plan_id: plan.id, fecha_inicio: sumarDias(hoy, 40), pago_inicial: { monto: plan.precio, metodo: 'efectivo' } }), 422, 'validacion');
     expect(e.detalles?.[0]?.campo).toBe('fecha_inicio');
     const m = await api.crearMembresia({ cliente_id: cli.id, plan_id: plan.id, pago_inicial: { monto: plan.precio, metodo: 'efectivo' } });
-    expect(m.fecha_vencimiento).toBe(sumarDias(hoy, 6));
+    expect(m.fecha_vencimiento).toBe(sumarDias(hoy, 29));
     expect((await api.listarPagosDeMembresia(m.id)).total).toBe(1);
   });
 
@@ -250,7 +250,7 @@ describe('A-02 · MockApi', () => {
     const m = await membresiaDe('JKL22K');
     const c = await api.cancelarMembresia(m.id, { motivo: 'Se va del barrio' });
     expect(c.estado).toBe('cancelada');
-    await falla(api.registrarPago({ membresia_id: m.id, monto: 60000, metodo: 'efectivo' }), 409, 'membresia_cancelada');
+    await falla(api.registrarPago({ membresia_id: m.id, monto: 85000, metodo: 'efectivo' }), 409, 'membresia_cancelada');
     const noti = await api.listarNotificaciones({ membresia_id: m.id, estado: 'pendiente' });
     expect(noti.total).toBe(0);
   });
@@ -316,7 +316,7 @@ describe('A-02 · MockApi', () => {
     expect(d.estancias_largas).toBe(1);
     expect(d.membresias).toEqual({ activas: 6, por_vencer: 2, vencidas: 2 });
     expect(d.pagos_hoy.cantidad).toBe(2);
-    expect(d.pagos_hoy.total).toBe(60000 + 18000);
+    expect(d.pagos_hoy.total).toBe(85000 * 2);
     expect(d.proximos_vencimientos.length).toBeLessThanOrEqual(5);
     expect(d.proximos_vencimientos.every((m) => m.estado === 'por_vencer' || m.estado === 'vencida')).toBe(true);
   });
