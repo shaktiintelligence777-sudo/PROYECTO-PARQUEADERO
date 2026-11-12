@@ -91,7 +91,7 @@ export function PanelRegistrar() {
           accion={
             <div className="flex w-full flex-col gap-3 sm:flex-row">
               <Link to={`/clientes/nuevo?placa=${buscada}`} className="inline-flex h-16 flex-1 items-center justify-center rounded-control bg-senal-400 px-6 text-subtitulo font-semibold text-asfalto-900 hover:bg-senal-500">Registrar cliente nuevo</Link>
-              <Boton variante="primario" tamano="xl" className="flex-1" onClick={() => setCasual(true)}>Visitante casual</Boton>
+              <Boton variante="primario" tamano="xl" className="flex-1" onClick={() => setCasual(true)}>Visitante diario</Boton>
             </div>
           }
         />

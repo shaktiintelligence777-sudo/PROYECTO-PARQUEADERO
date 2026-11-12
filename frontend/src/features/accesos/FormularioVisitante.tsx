@@ -9,7 +9,7 @@ export interface FormularioVisitanteProps {
   alCancelar: () => void;
 }
 
-/** Entrada de un visitante casual (cliente por día): solo placa, marca y color; el nombre es opcional. */
+/** Entrada de un visitante diario (cliente por día): solo placa, marca y color; el nombre es opcional. */
 export function FormularioVisitante({ placa, alTerminar, alCancelar }: FormularioVisitanteProps) {
   const { mostrar } = useToast();
   const entrada = useRegistrarEntradaCasual();
@@ -33,7 +33,7 @@ export function FormularioVisitante({ placa, alTerminar, alCancelar }: Formulari
     enCurso.current = true;
     try {
       await entrada.mutateAsync({ placa, marca: marca.trim(), color: color.trim(), ...(nombre.trim() ? { nombre: nombre.trim() } : {}) });
-      mostrar({ tono: 'exito', mensaje: `Entrada registrada · ${placa} · Visitante casual` });
+      mostrar({ tono: 'exito', mensaje: `Entrada registrada · ${placa} · Visitante diario` });
       alTerminar();
     } catch (err) {
       mostrar({ tono: 'peligro', mensaje: err instanceof ErrorApi ? err.mensaje : 'No pudimos registrar el acceso. Inténtalo de nuevo.' });
@@ -43,10 +43,10 @@ export function FormularioVisitante({ placa, alTerminar, alCancelar }: Formulari
   }
 
   return (
-    <Tarjeta aria-label="Visitante casual" className="space-y-3">
+    <Tarjeta aria-label="Visitante diario" className="space-y-3">
       <div className="flex items-center gap-3">
         <Placa placa={placa} tamano="lg" />
-        <span className="text-subtitulo text-asfalto-900">Visitante casual</span>
+        <span className="text-subtitulo text-asfalto-900">Visitante diario</span>
       </div>
       <form onSubmit={(e) => void enviar(e)} className="space-y-3" noValidate>
         <Campo etiqueta="Marca" error={errores.marca}>

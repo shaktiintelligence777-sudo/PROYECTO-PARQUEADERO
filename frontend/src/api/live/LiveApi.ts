@@ -85,7 +85,7 @@ export class LiveApi implements ApiClient {
   consultarPlaca(placa: string) { return this.pedir<ConsultaPlaca>('GET', '/accesos/consulta', { consulta: { placa } }); }
   registrarEntrada(datos: AccesoEntrada) { return this.pedir<AccesoRegistrado>('POST', '/accesos/entrada', { cuerpo: datos }); }
   registrarEntradaCasual(): Promise<AccesoRegistrado> {
-    return Promise.reject(new ErrorApi(501, 'error_interno', 'El visitante casual solo está disponible en el demo.'));
+    return Promise.reject(new ErrorApi(501, 'error_interno', 'El visitante diario solo está disponible en el demo.'));
   }
   registrarSalida(datos: AccesoEntrada) { return this.pedir<AccesoRegistrado>('POST', '/accesos/salida', { cuerpo: datos }); }
   listarMotosDentro(filtros?: { placa?: string }) {

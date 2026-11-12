@@ -338,7 +338,7 @@ describe('A-02 · MockApi', () => {
   });
 });
 
-describe('visitante casual', () => {
+describe('visitante diario', () => {
   beforeEach(async () => { await entrar(EMAIL_OPERADOR); });
 
   it('registra entrada sin cliente ni moto, sin membresía ni advertencias, y cuenta en el tablero', async () => {
@@ -347,10 +347,10 @@ describe('visitante casual', () => {
     expect(r.membresia).toBeNull();
     expect(r.advertencias).toEqual([]);
     expect(r.estancia.moto.placa).toBe('QWE12R');
-    expect(r.estancia.cliente.nombre).toBe('Visitante casual');
+    expect(r.estancia.cliente.nombre).toBe('Visitante diario');
     expect((await api.resumenDashboard()).motos_dentro).toBe(antes + 1);
     expect((await api.listarMotosDentro({ placa: 'QWE' })).items).toHaveLength(1);
-    expect((await api.listarClientes()).items.some((c) => c.nombre === 'Visitante casual')).toBe(false);
+    expect((await api.listarClientes()).items.some((c) => c.nombre === 'Visitante diario')).toBe(false);
   });
 
   it('exige marca y color; el nombre es opcional', async () => {

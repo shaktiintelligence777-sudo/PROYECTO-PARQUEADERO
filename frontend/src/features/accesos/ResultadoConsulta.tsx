@@ -27,7 +27,7 @@ export function ResultadoConsulta({ consulta, registrando, alEntrada, alSalida }
         {detalleMoto && <span className="text-cuerpo text-asfalto-700">{detalleMoto}</span>}
       </div>
       <p className="text-subtitulo text-asfalto-900">{cliente.nombre}</p>
-      {casual ? <Insignia tono="info">Visitante casual</Insignia> : <InsigniaEstado estado={membresia?.estado ?? null} diasRestantes={membresia?.dias_restantes} />}
+      {casual ? <Insignia tono="info">Visitante diario</Insignia> : <InsigniaEstado estado={membresia?.estado ?? null} diasRestantes={membresia?.dias_restantes} />}
 
       {dentro ? (
         <Aviso tono="info">Dentro desde las {formatoHora(dentro.entrada_en)} ({formatoDuracion(dentro.duracion_minutos)}).</Aviso>

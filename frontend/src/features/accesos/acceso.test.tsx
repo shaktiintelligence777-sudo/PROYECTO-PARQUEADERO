@@ -196,12 +196,12 @@ describe('P3 · registro de acceso', () => {
   });
 });
 
-describe('Visitante casual', () => {
+describe('Visitante diario', () => {
   it('muestra los dos botones del mismo tamaño cuando la placa no existe', async () => {
     await abrir();
     await buscar('ZZZ99Z');
     const enlace = await screen.findByRole('link', { name: 'Registrar cliente nuevo' });
-    const boton = screen.getByRole('button', { name: 'Visitante casual' });
+    const boton = screen.getByRole('button', { name: 'Visitante diario' });
     expect(enlace.className).toContain('h-16');
     expect(boton.className).toContain('h-16');
   });
@@ -209,14 +209,14 @@ describe('Visitante casual', () => {
   it('exige marca y color, el nombre es opcional, y registra la entrada', async () => {
     await abrir();
     const u = await buscar('ZZZ99Z');
-    await u.click(await screen.findByRole('button', { name: 'Visitante casual' }));
+    await u.click(await screen.findByRole('button', { name: 'Visitante diario' }));
     await u.click(screen.getByRole('button', { name: 'Registrar entrada' }));
     expect(await screen.findByText('Escribe la marca.')).toBeInTheDocument();
     expect(screen.getByText('Escribe el color.')).toBeInTheDocument();
     await u.type(screen.getByLabelText('Marca'), 'Honda');
     await u.type(screen.getByLabelText('Color'), 'Rojo');
     await u.click(screen.getByRole('button', { name: 'Registrar entrada' }));
-    expect(await screen.findByText('Entrada registrada · ZZZ99Z · Visitante casual')).toBeInTheDocument();
+    expect(await screen.findByText('Entrada registrada · ZZZ99Z · Visitante diario')).toBeInTheDocument();
     expect(screen.getByLabelText('Placa')).toHaveValue('');
   });
 
@@ -226,7 +226,7 @@ describe('Visitante casual', () => {
     const u = await buscar('zzz99z');
     const r = await screen.findByLabelText('Resultado de ZZZ99Z');
     expect(within(r).getByText('Luis')).toBeInTheDocument();
-    expect(within(r).getByText('Visitante casual')).toBeInTheDocument();
+    expect(within(r).getByText('Visitante diario')).toBeInTheDocument();
     expect(within(r).queryByRole('link', { name: 'Ver cliente' })).not.toBeInTheDocument();
     await u.click(within(r).getByRole('button', { name: 'Registrar salida' }));
     expect(await screen.findByText(/^Salida registrada · ZZZ99Z/)).toBeInTheDocument();
