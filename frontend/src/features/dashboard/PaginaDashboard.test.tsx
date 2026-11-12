@@ -21,12 +21,12 @@ const conResumen = (parcial: Partial<DashboardResumen>) => vi.spyOn(e.api, 'resu
 const indicador = async (etiqueta: string) => (await screen.findByText(etiqueta)).closest('a')!;
 
 describe('P2 · dashboard', () => {
-  it('CA-1 mientras carga muestra esqueletos de los cuatro indicadores y de la lista', async () => {
+  it('CA-1 mientras carga muestra esqueletos de los seis indicadores y de la lista', async () => {
     vi.spyOn(e.api, 'resumenDashboard').mockReturnValue(new Promise(() => {}));
     montar('/', e);
     const carga = await screen.findByRole('status', { name: 'Cargando el resumen' });
-    expect(carga.querySelectorAll('.animate-pulse').length).toBe(7);
-    expect(carga.querySelector('.grid-cols-2')!.children).toHaveLength(4);
+    expect(carga.querySelectorAll('.animate-pulse').length).toBe(9);
+    expect(carga.querySelector('.grid-cols-2')!.children).toHaveLength(6);
   });
 
   it('saludo con el primer nombre y la fecha de hoy', async () => {
@@ -35,16 +35,30 @@ describe('P2 · dashboard', () => {
     expect(await screen.findByText(/^Hola, \S+ · mar 10 nov$/)).toBeInTheDocument();
   });
 
-  it('CA-2 "12 / 40" con capacidad y "12" sin ella', async () => {
+  it('CA-2 "12 motos adentro" y la capacidad aparte; con 1, "1 moto adentro"', async () => {
     conResumen({});
     const { unmount } = montar('/', e);
-    expect(within(await indicador('Dentro ahora')).getByText('12 / 40')).toBeInTheDocument();
-    expect(await indicador('Dentro ahora')).toHaveAttribute('href', '/acceso?vista=dentro');
+    const a = await indicador('Dentro ahora');
+    expect(within(a).getByText('motos adentro')).toBeInTheDocument();
+    expect(a.textContent).toContain('12 motos adentro');
+    expect(within(a).getByText('Capacidad: 40')).toBeInTheDocument();
+    expect(a).toHaveAttribute('href', '/acceso?vista=dentro');
     unmount();
-    conResumen({ capacidad: null });
+    conResumen({ capacidad: null, motos_dentro: 1 });
     montar('/', e);
-    await waitFor(async () => expect(within(await indicador('Dentro ahora')).getByText('12')).toBeInTheDocument());
-    expect(screen.queryByText('12 / 40')).not.toBeInTheDocument();
+    await waitFor(async () => expect((await indicador('Dentro ahora')).textContent).toContain('1 moto adentro'));
+    expect(screen.queryByText(/Capacidad:/)).not.toBeInTheDocument();
+  });
+
+  it('CA-2 las burbujas vecinas dividen lo que hay dentro en membresías y diarios (suman lo mismo)', async () => {
+    const dentro = (await e.api.listarMotosDentro()).items;
+    const diarios = dentro.filter((x) => x.cliente.documento === '').length;
+    montar('/', e);
+    const [conMembresia, deDiario] = await screen.findAllByText('De ellas');
+    const m = conMembresia!.closest('a')!.textContent!;
+    const d = deDiario!.closest('a')!.textContent!;
+    expect(m).toContain(`${dentro.length - diarios} ${dentro.length - diarios === 1 ? 'membresía' : 'membresías'}`);
+    expect(d).toContain(`${diarios} ${diarios === 1 ? 'diario' : 'diarios'}`);
   });
 
   it('CA-3 "Vencidas" con valor > 0 usa tono peligro y enlaza a vencidas; con 0 no tiene tono', async () => {
@@ -126,14 +140,14 @@ describe('P2 · dashboard', () => {
   it('CA-9 tras registrar una entrada en otra pantalla, "Dentro ahora" refleja el cambio', async () => {
     montar('/', e);
     const antes = await indicador('Dentro ahora');
-    await waitFor(() => expect(within(antes).getByText('5 / 40')).toBeInTheDocument());
+    await waitFor(() => expect(antes.textContent).toContain('5 motos adentro'));
     const u = userEvent.setup();
     await u.click(screen.getAllByRole('link', { name: 'Acceso' })[0]!);
     await u.type(await screen.findByLabelText('Placa'), 'XYZ34E{Enter}');
     await u.click(await screen.findByRole('button', { name: 'Registrar entrada' }));
     await screen.findByText('Entrada registrada · XYZ34E');
     await u.click(screen.getAllByRole('link', { name: 'Inicio' })[0]!);
-    await waitFor(async () => expect(within(await indicador('Dentro ahora')).getByText('6 / 40')).toBeInTheDocument());
+    await waitFor(async () => expect((await indicador('Dentro ahora')).textContent).toContain('6 motos adentro'));
   });
 
   it('muestra el movimiento de hoy', async () => {
@@ -142,12 +156,12 @@ describe('P2 · dashboard', () => {
     expect(await screen.findByText('Entradas 18 · Salidas 9')).toBeInTheDocument();
   });
 
-  it('CA-10 los indicadores van en una cuadrícula de 2 columnas en móvil, sin anchos fijos', async () => {
+  it('CA-10 los indicadores van en una cuadrícula de 2 columnas (3 abajo) en móvil, sin anchos fijos', async () => {
     conResumen({});
     montar('/', e);
-    const rejilla = (await indicador('Dentro ahora')).parentElement!;
+    const rejilla = (await indicador('Por vencer')).parentElement!;
     expect(rejilla.className).toMatch(/\bgrid-cols-2\b/);
-    expect(rejilla.children).toHaveLength(4);
+    expect(rejilla.children).toHaveLength(3);
     expect(rejilla.closest('main')!.innerHTML).not.toMatch(/w-\[\d+px\]/);
   });
 
