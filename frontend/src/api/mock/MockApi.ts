@@ -158,7 +158,7 @@ export class MockApi implements ApiClient {
       .sort((a, b) => Number(b.activo) - Number(a.activo) || a.placa.localeCompare(b.placa)).map((m) => this.motoVista(db, m));
     return { ...this.clienteBase(c), motos, membresia: this.resumen(db, this.membresiaActual(db, c.id)) };
   }
-  /** Placa de la estancia, sea de una moto registrada o de un visitante casual. */
+  /** Placa de la estancia, sea de una moto registrada o de un visitante diario. */
   private placaDe(db: Db, e: FilaEstancia): string { return e.visitante ? e.visitante.placa : db.motos.find((m) => m.id === e.moto_id)!.placa; }
   private estanciaVista(db: Db, e: FilaEstancia): Estancia {
     const v = e.visitante;
@@ -167,7 +167,7 @@ export class MockApi implements ApiClient {
     return {
       id: e.id,
       moto: v ? { id: e.id, placa: v.placa, marca: v.marca, color: v.color } : { id: moto!.id, placa: moto!.placa, marca: moto!.marca, color: moto!.color },
-      cliente: v ? { id: e.id, nombre: v.nombre ?? 'Visitante casual', documento: '', telefono: '' } : this.clienteRef(this.cliente(db, moto!.cliente_id)),
+      cliente: v ? { id: e.id, nombre: v.nombre ?? 'Visitante diario', documento: '', telefono: '' } : this.clienteRef(this.cliente(db, moto!.cliente_id)),
       entrada_en: e.entrada_en, salida_en: e.salida_en,
       duracion_minutos: Math.max(0, Math.floor((fin - new Date(e.entrada_en).getTime()) / 60_000)),
       operador_entrada: this.usuarioRef(db, e.operador_entrada),
@@ -730,7 +730,7 @@ export class MockApi implements ApiClient {
     return m ? this.estado(db, m) : null;
   }
 
-  /** Estancia abierta de un visitante casual con esa placa (la placa ya viene normalizada). */
+  /** Estancia abierta de un visitante diario con esa placa (la placa ya viene normalizada). */
   private casualAbierta(db: Db, placa: string): FilaEstancia | undefined {
     return db.estancias.find((e) => e.visitante?.placa === placa && !e.salida_en);
   }
