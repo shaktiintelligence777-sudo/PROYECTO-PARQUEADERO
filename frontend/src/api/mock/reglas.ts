@@ -1,12 +1,9 @@
 import type { Advertencia, EstadoMembresia } from '../client';
+import { finDePeriodo, mesesDelPlan, sumarDias, sumarMeses } from '@/lib/fechas';
+
+export { sumarDias };
 
 // Funciones puras del dominio (docs/dominio.md). Referencia para quien implemente B-06.
-
-/** Suma días a una fecha YYYY-MM-DD con aritmética de calendario (sin depender de la zona de la máquina). */
-export function sumarDias(fecha: string, dias: number): string {
-  const [a, m, d] = fecha.split('-').map(Number) as [number, number, number];
-  return new Date(Date.UTC(a, m - 1, d + dias)).toISOString().slice(0, 10);
-}
 
 /** Días de `hasta` − `desde` (fechas YYYY-MM-DD). */
 export function diferenciaDias(hasta: string, desde: string): number {
@@ -28,17 +25,29 @@ export function estadoMembresia(
   return dias <= diasPorVencer ? 'por_vencer' : 'activa';
 }
 
-/** RN-41 / RN-42: periodo cubierto por un pago. */
+/**
+ * RN-41 / RN-42 (demo): periodo cubierto por un pago. Las fechas de cobro son fijas: el periodo siempre
+ * empieza el día siguiente al vencimiento anterior, aunque se pague tarde o antes de tiempo. Los planes
+ * de 30, 60, 90… días avanzan por meses de calendario conservando el día de `fecha_inicio`.
+ */
 export function periodoDePago(
-  fechaVencimiento: string, hoy: string, duracionDias: number, periodos: number,
+  m: { fecha_inicio: string; fecha_vencimiento: string }, duracionDias: number, periodos: number,
 ): { periodo_desde: string; periodo_hasta: string } {
-  const desde = hoy <= fechaVencimiento ? sumarDias(fechaVencimiento, 1) : hoy;
-  return { periodo_desde: desde, periodo_hasta: sumarDias(desde, duracionDias * periodos - 1) };
+  const desde = sumarDias(m.fecha_vencimiento, 1);
+  const diaAncla = Number(m.fecha_inicio.slice(8, 10));
+  return { periodo_desde: desde, periodo_hasta: finDePeriodo(desde, duracionDias, periodos, diaAncla) };
 }
 
 /** RN-31: vencimiento de una membresía nueva. */
 export function vencimientoInicial(fechaInicio: string, duracionDias: number): string {
-  return sumarDias(fechaInicio, duracionDias - 1);
+  return finDePeriodo(fechaInicio, duracionDias, 1);
+}
+
+/** Inicio del ciclo que termina en `vencimiento` (inversa de `vencimientoInicial`; la usa la semilla). */
+export function inicioDeCiclo(vencimiento: string, duracionDias: number): string {
+  const meses = mesesDelPlan(duracionDias);
+  const siguiente = sumarDias(vencimiento, 1);
+  return meses === null ? sumarDias(vencimiento, -(duracionDias - 1)) : sumarMeses(siguiente, -meses);
 }
 
 /** RN-52 (y CB-10): advertencias de una entrada. */

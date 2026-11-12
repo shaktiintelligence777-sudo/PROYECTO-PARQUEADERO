@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  advertenciasDeEstado, diasRestantes, estadoMembresia, normalizarPlaca, periodoDePago, plano, sumarDias, vencimientoInicial,
+  advertenciasDeEstado, diasRestantes, inicioDeCiclo, estadoMembresia, normalizarPlaca, periodoDePago, plano, sumarDias, vencimientoInicial,
 } from './reglas';
 
 describe('reglas', () => {
@@ -18,19 +18,30 @@ describe('reglas', () => {
     expect(e('2026-12-30', '2026-11-01T00:00:00Z')).toBe('cancelada');
     expect(diasRestantes('2026-11-08', '2026-11-10')).toBe(-2);
   });
-  it('CB-2 pago con 2 días restantes no pierde días', () => {
-    expect(periodoDePago('2026-11-12', '2026-11-10', 30, 1)).toEqual({ periodo_desde: '2026-11-13', periodo_hasta: '2026-12-12' });
+  const m = (inicio: string, venc: string) => ({ fecha_inicio: inicio, fecha_vencimiento: venc });
+  it('CB-2 pago anticipado no pierde días: el periodo empieza al día siguiente del vencimiento', () => {
+    expect(periodoDePago(m('2026-10-13', '2026-11-12'), 30, 1)).toEqual({ periodo_desde: '2026-11-13', periodo_hasta: '2026-12-12' });
   });
-  it('CB-3 pago con membresía vencida empieza hoy', () => {
-    expect(periodoDePago('2026-10-31', '2026-11-10', 30, 1).periodo_desde).toBe('2026-11-10');
+  it('CB-3 pago tardío renueva desde el vencimiento anterior, no desde el día del pago (5 nov → 5 dic)', () => {
+    expect(periodoDePago(m('2026-10-06', '2026-11-05'), 30, 1)).toEqual({ periodo_desde: '2026-11-06', periodo_hasta: '2026-12-05' });
   });
-  it('CB-4 tres periodos de 30 días', () => {
-    expect(periodoDePago('2026-11-12', '2026-11-10', 30, 3).periodo_hasta).toBe('2027-02-10');
+  it('CB-4 tres periodos mensuales avanzan tres meses de calendario', () => {
+    expect(periodoDePago(m('2026-10-13', '2026-11-12'), 30, 3).periodo_hasta).toBe('2027-02-12');
   });
-  it('el día del vencimiento el periodo empieza al día siguiente', () => {
-    expect(periodoDePago('2026-11-10', '2026-11-10', 7, 1)).toEqual({ periodo_desde: '2026-11-11', periodo_hasta: '2026-11-17' });
+  it('el ciclo conserva el día del mes aunque un mes corto lo recorte (inicio 31 ene)', () => {
+    const feb = periodoDePago(m('2026-01-31', '2026-02-27'), 30, 1);
+    expect(feb).toEqual({ periodo_desde: '2026-02-28', periodo_hasta: '2026-03-30' });
+    expect(periodoDePago(m('2026-01-31', feb.periodo_hasta), 30, 1).periodo_hasta).toBe('2026-04-29');
   });
-  it('vencimiento inicial (RN-31)', () => expect(vencimientoInicial('2026-11-10', 30)).toBe('2026-12-09'));
+  it('un plan que no es múltiplo de 30 días avanza por días', () => {
+    expect(periodoDePago(m('2026-11-04', '2026-11-10'), 7, 1)).toEqual({ periodo_desde: '2026-11-11', periodo_hasta: '2026-11-17' });
+  });
+  it('vencimiento inicial (RN-31) e inverso', () => {
+    expect(vencimientoInicial('2026-11-10', 30)).toBe('2026-12-09');
+    expect(vencimientoInicial('2027-01-31', 30)).toBe('2027-02-27');
+    expect(inicioDeCiclo('2026-12-09', 30)).toBe('2026-11-10');
+    expect(vencimientoInicial('2026-11-10', 7)).toBe('2026-11-16');
+  });
   it('advertencias (RN-52, CB-10)', () => {
     expect(advertenciasDeEstado(null)).toEqual(['sin_membresia']);
     expect(advertenciasDeEstado('cancelada')).toEqual(['sin_membresia']);

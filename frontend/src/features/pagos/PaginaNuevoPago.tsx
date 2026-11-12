@@ -4,7 +4,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { ErrorApi, type PagoRegistrado as Resultado } from '@/api';
 import { useMembresia, useMembresias, useRegistrarPago, useVistaPreviaPago } from '@/api/hooks';
 import { METODOS, mensajeNotaPago, MAX_NOTA, type MetodoPago } from '@/features/membresias/esquemas';
-import { formatoDiasRestantes, formatoDinero } from '@/lib/formato';
+import { formatoDiasRestantes, formatoDinero, formatoFecha } from '@/lib/formato';
 import {
   AreaTexto, Aviso, Boton, BotonIcono, Buscador, Campo, CabeceraPagina, Elemento, EntradaDinero, EstadoVacio, GrupoOpciones, InsigniaEstado,
   ListaElementos, Tarjeta, useToast,
@@ -120,7 +120,7 @@ function FormularioPago({ membresiaId, alCambiar, alRegistrar }: { membresiaId: 
         </Tarjeta>
       </section>
 
-      {m?.estado === 'vencida' && <Aviso tono="info">La membresía está vencida: el nuevo periodo empieza hoy.</Aviso>}
+      {m?.estado === 'vencida' && <Aviso tono="info">La membresía está vencida: el nuevo periodo continúa desde el vencimiento anterior ({formatoFecha(m.fecha_vencimiento)}).</Aviso>}
       {errorVista?.codigo === 'plan_inactivo' && (
         <Aviso tono="peligro" accion={m && <Link to={`/clientes/${m.cliente.id}`} className="font-semibold underline">Ver cliente</Link>}>
           El plan de esta membresía ya no está disponible. Cambia el plan antes de registrar el pago.

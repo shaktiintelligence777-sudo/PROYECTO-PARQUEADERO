@@ -83,7 +83,7 @@ describe('P7 · registrar pago', () => {
 
   it('CA-7 una membresía vencida muestra el aviso', async () => {
     await abrir('Camilo');
-    expect(await screen.findByText('La membresía está vencida: el nuevo periodo empieza hoy.')).toBeInTheDocument();
+    expect(await screen.findByText(/La membresía está vencida: el nuevo periodo continúa desde el vencimiento anterior \(/)).toBeInTheDocument();
   });
 
   it('CA-8 registrar muestra la confirmación y la ficha refleja el nuevo vencimiento', async () => {

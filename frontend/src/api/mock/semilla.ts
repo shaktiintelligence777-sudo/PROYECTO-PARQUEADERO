@@ -1,11 +1,11 @@
 import { idSemilla } from './ids';
 import type { Db, FilaCliente, FilaEstancia, FilaMembresia, FilaMoto, FilaNotificacion, FilaPago, FilaPlan } from './modelo';
 import type { Reloj } from './reloj';
-import { sumarDias } from './reglas';
+import { inicioDeCiclo, periodoDePago, sumarDias } from './reglas';
 
 // Subir este número cada vez que cambie la semilla o la forma de los datos: los navegadores con una base
 // guardada de otra versión la descartan y vuelven a sembrar (si no, siguen viendo el demo viejo).
-export const VERSION_DB = 2;
+export const VERSION_DB = 3;
 export const EMAIL_ADMIN = 'demo@parqueadero.app';
 export const EMAIL_OPERADOR = 'operador@parqueadero.app';
 export const PASSWORD_DEMO = 'demo1234';
@@ -76,7 +76,7 @@ export function crearSemilla(reloj: Reloj): Db {
     const plan = planes[c.plan]!;
     const idMem = idSemilla(T.membresia, i + 1);
     const vencimiento = sumarDias(hoy, c.venc);
-    const inicio = sumarDias(vencimiento, -(plan.duracion_dias - 1));
+    const inicio = inicioDeCiclo(vencimiento, plan.duracion_dias);
     const base = { id: '', membresia_id: idMem, plan_id: plan.id, periodos: 1, nota: null as string | null, registrado_por: i % 2 ? operador : admin,
       anulado: false, anulado_en: null, anulado_por: null, motivo_anulacion: null };
     membresias.push({
@@ -94,7 +94,7 @@ export function crearSemilla(reloj: Reloj): Db {
       nPago += 1;
       pagos.push({
         ...base, id: idSemilla(T.pago, nPago), monto: plan.precio, metodo: 'efectivo',
-        periodo_desde: sumarDias(vencimiento, 1), periodo_hasta: sumarDias(vencimiento, plan.duracion_dias),
+        ...periodoDePago({ fecha_inicio: inicio, fecha_vencimiento: vencimiento }, plan.duracion_dias, 1),
         vencimiento_anterior: vencimiento, creado_en: hace(1440 + 60), anulado: true, anulado_en: hace(1440),
         anulado_por: admin, motivo_anulacion: 'Pago registrado en el cliente equivocado.',
       });
