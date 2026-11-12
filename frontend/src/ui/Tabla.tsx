@@ -76,12 +76,12 @@ export function Tabla<T>({ columnas, filas, claveFila, alClicFila, descripcion, 
                       onClick={() => alternarOrden(c.clave)}
                       aria-label={`Ordenar por ${c.encabezado}`}
                       className={cx(
-                        'inline-flex items-center gap-1 rounded-control font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-info',
+                        'inline-flex cursor-pointer items-center gap-2 rounded-control font-semibold text-asfalto-700 hover:text-asfalto-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-info',
                         c.alinear === 'derecha' && 'flex-row-reverse',
                       )}
                     >
                       {c.encabezado}
-                      <Icono aria-hidden="true" className={cx('size-4', activa === null && 'opacity-50')} />
+                      <Icono aria-hidden="true" className="size-4 shrink-0" />
                     </button>
                   ) : (
                     c.encabezado
