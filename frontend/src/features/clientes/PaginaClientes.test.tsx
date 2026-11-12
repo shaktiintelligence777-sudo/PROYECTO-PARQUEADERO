@@ -99,4 +99,14 @@ describe('P4 · lista de clientes', () => {
     ['Nombre', 'Teléfono', 'Placas', 'Membresía', 'Vence'].forEach((t) => expect(within(tabla).getByRole('columnheader', { name: t })).toBeInTheDocument());
     expect(within(tabla).queryByRole('columnheader', { name: 'Documento' })).not.toBeInTheDocument();
   });
+
+  it('CA-ORD escritorio: cada cabecera de la tabla de clientes tiene botón de orden', async () => {
+    montar('/clientes', e);
+    await lista();
+    const tabla = screen.getByRole('table', { name: 'Tabla de clientes' });
+    ['Nombre', 'Teléfono', 'Placas', 'Membresía', 'Vence'].forEach((t) =>
+      expect(within(tabla).getByRole('button', { name: `Ordenar por ${t}` })).toBeInTheDocument());
+    await userEvent.click(within(tabla).getByRole('button', { name: 'Ordenar por Nombre' }));
+    expect(within(tabla).getByRole('columnheader', { name: /Nombre/ })).toHaveAttribute('aria-sort', 'ascending');
+  });
 });
