@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  formatoDiasRestantes, formatoDinero, formatoDuracion, formatoFecha, formatoFechaCorta, formatoFechaHora, formatoHora, normalizarPlaca,
+  formatoCronometro, formatoDiasRestantes, formatoDinero, formatoDuracion, formatoFecha, formatoFechaCorta, formatoFechaHora, formatoHora, normalizarPlaca,
 } from './formato';
 
 describe('formato', () => {
@@ -31,5 +31,19 @@ describe('formato', () => {
   it('formatoFechaCorta: día de la semana, día y mes', () => {
     expect(formatoFechaCorta('2026-11-10')).toBe('mar 10 nov');
     expect(formatoFechaCorta('2026-11-09')).toBe('lun 9 nov');
+  });
+});
+
+describe('cronómetro', () => {
+  const desde = '2026-11-10T17:00:00Z';
+  it('CA-12 formatea el tiempo transcurrido como HH:MM:SS sin tope de horas', () => {
+    const ms = Date.parse(desde);
+    expect(formatoCronometro(desde, ms)).toBe('00:00:00');
+    expect(formatoCronometro(desde, ms + 65_000)).toBe('00:01:05');
+    expect(formatoCronometro(desde, ms + (95 * 60 + 3) * 1000)).toBe('01:35:03');
+    expect(formatoCronometro(desde, ms + 27 * 3600_000)).toBe('27:00:00');
+  });
+  it('CA-12 nunca muestra un tiempo negativo', () => {
+    expect(formatoCronometro(desde, Date.parse(desde) - 5_000)).toBe('00:00:00');
   });
 });

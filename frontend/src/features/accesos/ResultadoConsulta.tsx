@@ -1,8 +1,8 @@
 import { LogIn, LogOut } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { esVisitanteCasual, type ConsultaPlaca } from '@/api';
-import { formatoDuracion, formatoHora } from '@/lib/formato';
-import { Aviso, Boton, Insignia, InsigniaEstado, Placa, Tarjeta } from '@/ui';
+import { formatoHora } from '@/lib/formato';
+import { Aviso, Boton, Cronometro, Insignia, InsigniaEstado, Placa, Tarjeta } from '@/ui';
 
 export interface ResultadoConsultaProps {
   consulta: ConsultaPlaca;
@@ -30,7 +30,7 @@ export function ResultadoConsulta({ consulta, registrando, alEntrada, alSalida }
       {casual ? <Insignia tono="info">Visitante diario</Insignia> : <InsigniaEstado estado={membresia?.estado ?? null} diasRestantes={membresia?.dias_restantes} />}
 
       {dentro ? (
-        <Aviso tono="info">Dentro desde las {formatoHora(dentro.entrada_en)} ({formatoDuracion(dentro.duracion_minutos)}).</Aviso>
+        <Aviso tono="info">Dentro desde las {formatoHora(dentro.entrada_en)} (<Cronometro desde={dentro.entrada_en} />).</Aviso>
       ) : (
         <>
           {porVencer && <Aviso tono="aviso">La membresía vence pronto.</Aviso>}

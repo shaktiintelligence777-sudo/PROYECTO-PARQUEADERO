@@ -77,3 +77,10 @@ export function formatoRelojBogota(instante: Date): { hora: string; meridiano: s
   const periodo = (p.dayPeriod ?? '').toLowerCase().replace(/[\s\u202f\u00a0.]/g, '');
   return { hora: `${p.hour}:${p.minute}:${p.second}`, meridiano: periodo.startsWith('p') ? 'p. m.' : 'a. m.' };
 }
+
+/** Tiempo transcurrido desde `desdeIso` hasta `ahoraMs` como cronómetro "HH:MM:SS" (las horas pasan de 24 sin volver a cero). */
+export function formatoCronometro(desdeIso: string, ahoraMs: number): string {
+  const total = Math.max(0, Math.floor((ahoraMs - Date.parse(desdeIso)) / 1000));
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${pad(Math.floor(total / 3600))}:${pad(Math.floor((total % 3600) / 60))}:${pad(total % 60)}`;
+}

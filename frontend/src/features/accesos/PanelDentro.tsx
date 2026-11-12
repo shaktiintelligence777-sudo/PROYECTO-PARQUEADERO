@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { ErrorApi, esVisitanteCasual, type Estancia } from '@/api';
 import { useMotosDentro, useRegistrarSalida } from '@/api/hooks';
 import { formatoDuracion, formatoHora } from '@/lib/formato';
-import { Boton, Buscador, DialogoConfirmar, Elemento, EstadoError, EstadoVacio, Esqueleto, Insignia, ListaElementos, Placa, useToast } from '@/ui';
+import { Boton, Buscador, Cronometro, DialogoConfirmar, Elemento, EstadoError, EstadoVacio, Esqueleto, Insignia, ListaElementos, Placa, useToast } from '@/ui';
 
 const REFRESCO_MS = 30_000;
 const MINUTOS_DIA = 24 * 60;
@@ -48,7 +48,7 @@ export function PanelDentro() {
               key={e.id}
               inicio={<Placa placa={e.moto.placa} />}
               titulo={e.cliente.nombre}
-              subtitulo={`Desde las ${formatoHora(e.entrada_en)} · ${formatoDuracion(e.duracion_minutos)}`}
+              subtitulo={<>Desde las {formatoHora(e.entrada_en)} · <Cronometro desde={e.entrada_en} /></>}
               fin={
                 <span className="flex items-center gap-2">
                   {esVisitanteCasual(e) && <Insignia tono="info">Casual</Insignia>}
