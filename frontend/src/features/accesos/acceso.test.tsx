@@ -2,16 +2,18 @@ import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fijarApi } from '@/api';
-import { crearEntorno, iniciarSesion, montar, type Entorno } from '@/test/montar';
+import { RELOJ, crearEntorno, iniciarSesion, montar, type Entorno } from '@/test/montar';
 
 let e: Entorno;
 beforeEach(async () => {
   window.localStorage.clear();
   window.sessionStorage.clear();
+  // Fija solo Date: el reloj de la API mock es RELOJ, así los cronómetros de "Dentro" son exactos.
+  vi.useFakeTimers({ toFake: ['Date'], now: new Date(RELOJ) });
   e = crearEntorno();
   await iniciarSesion(e);
 });
-afterEach(() => { fijarApi(null); });
+afterEach(() => { fijarApi(null); vi.useRealTimers(); });
 
 async function abrir(ruta = '/acceso') {
   montar(ruta, e);
@@ -98,7 +100,7 @@ describe('P3 · registro de acceso', () => {
   it('CA-7 moto dentro: aviso "Dentro desde las" y salida con duración', async () => {
     await abrir();
     const u = await buscar('ABC12D');
-    expect(await screen.findByText(/^Dentro desde las .* \(1 h 35 min\)\.$/)).toBeInTheDocument();
+    expect(await screen.findByText(/^Dentro desde las /)).toHaveTextContent(/^Dentro desde las \d{1,2}:\d{2} [ap]\. m\. \(01:35:00\)\.$/);
     await u.click(screen.getByRole('button', { name: 'Registrar salida' }));
     expect(await screen.findByText('Salida registrada · ABC12D · 1 h 35 min')).toBeInTheDocument();
   });
@@ -218,6 +220,15 @@ describe('Visitante diario', () => {
     await u.click(screen.getByRole('button', { name: 'Registrar entrada' }));
     expect(await screen.findByText('Entrada registrada · ZZZ99Z · Visitante diario')).toBeInTheDocument();
     expect(screen.getByLabelText('Placa')).toHaveValue('');
+  });
+
+  it('CA-12 la lista Dentro muestra el cronómetro de cada visitante diario que está dentro', async () => {
+    await e.api.registrarEntradaCasual({ placa: 'ZZZ99Z', marca: 'Honda', color: 'Rojo', nombre: 'Luis' });
+    await abrir('/acceso?vista=dentro');
+    const lista = await screen.findByRole('list', { name: 'Motos dentro' });
+    const fila = within(lista).getByRole('img', { name: 'Placa ZZZ99Z' }).closest('li')!;
+    expect(within(fila).getByText('Casual')).toBeInTheDocument();
+    expect(within(fila).getByText('00:00:00')).toBeInTheDocument();
   });
 
   it('aparece en "Dentro" y su salida se registra desde la búsqueda por placa', async () => {

@@ -6,6 +6,7 @@ export * from './BotonIcono';
 export * from './Buscador';
 export * from './CabeceraPagina';
 export * from './Campo';
+export * from './Cronometro';
 export * from './DatoEtiquetado';
 export * from './DialogoConfirmar';
 export * from './Entrada';
