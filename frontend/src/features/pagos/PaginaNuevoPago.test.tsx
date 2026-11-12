@@ -25,7 +25,7 @@ const abrir = async (nombre: string) => {
 const monto = () => screen.findByLabelText('Monto *');
 
 describe('P7 · registrar pago', () => {
-  it('CA-4 el resumen muestra lo que devuelve la vista previa y el botón dice "Registrar $60.000"', async () => {
+  it('CA-4 el resumen muestra lo que devuelve la vista previa y el botón dice "Registrar $85.000"', async () => {
     const m = await abrir('Carlos');
     const vp = await e.api.previsualizarPago({ membresia_id: m.id, periodos: 1 });
     const resumen = await screen.findByLabelText('Resumen');
@@ -36,11 +36,11 @@ describe('P7 · registrar pago', () => {
     expect(cubre).toBe(`${formatoFecha(vp.periodo_desde)} – ${formatoFecha(vp.periodo_hasta)}`);
     expect(actual).toBe(formatoFecha(vp.vencimiento_actual));
     expect(nuevo).toBe(formatoFecha(vp.vencimiento_nuevo));
-    expect(await screen.findByRole('button', { name: 'Registrar $60.000' })).toBeEnabled();
-    expect(await monto()).toHaveValue('$ 60.000');
+    expect(await screen.findByRole('button', { name: 'Registrar $85.000' })).toBeEnabled();
+    expect(await monto()).toHaveValue('$ 85.000');
   });
 
-  it('CA-5 con 3 periodos el monto pasa a $180.000 y el nuevo vencimiento se actualiza', async () => {
+  it('CA-5 con 3 periodos el monto pasa a $255.000 y el nuevo vencimiento se actualiza', async () => {
     const m = await abrir('Carlos');
     const u = userEvent.setup();
     const resumen = await screen.findByLabelText('Resumen');
@@ -48,8 +48,8 @@ describe('P7 · registrar pago', () => {
     const antes = resumen.querySelectorAll('dd')[2]!.textContent;
     await u.click(screen.getByRole('button', { name: 'Más periodos' }));
     await u.click(screen.getByRole('button', { name: 'Más periodos' }));
-    expect(await screen.findByRole('button', { name: 'Registrar $180.000' })).toBeEnabled();
-    expect(await monto()).toHaveValue('$ 180.000');
+    expect(await screen.findByRole('button', { name: 'Registrar $255.000' })).toBeEnabled();
+    expect(await monto()).toHaveValue('$ 255.000');
     expect(screen.getByLabelText('Número de periodos')).toHaveTextContent('3');
     const vp = await e.api.previsualizarPago({ membresia_id: m.id, periodos: 3 });
     expect(vp.vencimiento_nuevo).not.toBe('');
@@ -60,25 +60,25 @@ describe('P7 · registrar pago', () => {
     await abrir('Carlos');
     const u = userEvent.setup();
     const campo = await monto();
-    await screen.findByRole('button', { name: 'Registrar $60.000' });
+    await screen.findByRole('button', { name: 'Registrar $85.000' });
     await u.clear(campo);
     await u.type(campo, '50000');
     await u.click(screen.getByRole('button', { name: 'Más periodos' }));
     await waitFor(() => expect(screen.getByLabelText('Resumen').querySelectorAll('dd')).toHaveLength(3));
     expect(campo).toHaveValue('$ 50.000');
     await u.click(screen.getByRole('button', { name: 'Registrar $50.000' }));
-    expect(await screen.findByText('Explica por qué el monto es distinto al sugerido ($120.000).')).toBeInTheDocument();
+    expect(await screen.findByText('Explica por qué el monto es distinto al sugerido ($170.000).')).toBeInTheDocument();
   });
 
-  it('CA-6 con $60.000 sugeridos, el mensaje cita $60.000', async () => {
+  it('CA-6 con $85.000 sugeridos, el mensaje cita $85.000', async () => {
     await abrir('Carlos');
     const u = userEvent.setup();
     const campo = await monto();
-    await screen.findByRole('button', { name: 'Registrar $60.000' });
+    await screen.findByRole('button', { name: 'Registrar $85.000' });
     await u.clear(campo);
     await u.type(campo, '50000');
     await u.click(screen.getByRole('button', { name: 'Registrar $50.000' }));
-    expect(await screen.findByText('Explica por qué el monto es distinto al sugerido ($60.000).')).toBeInTheDocument();
+    expect(await screen.findByText('Explica por qué el monto es distinto al sugerido ($85.000).')).toBeInTheDocument();
   });
 
   it('CA-7 una membresía vencida muestra el aviso', async () => {
@@ -90,9 +90,9 @@ describe('P7 · registrar pago', () => {
     const m = await abrir('Carlos');
     const u = userEvent.setup();
     const vp = await e.api.previsualizarPago({ membresia_id: m.id, periodos: 1 });
-    await u.click(await screen.findByRole('button', { name: 'Registrar $60.000' }));
+    await u.click(await screen.findByRole('button', { name: 'Registrar $85.000' }));
     expect(await screen.findByRole('heading', { name: 'Pago registrado' })).toBeInTheDocument();
-    expect(screen.getByText('$60.000 · Efectivo')).toBeInTheDocument();
+    expect(screen.getByText('$85.000 · Efectivo')).toBeInTheDocument();
     expect(screen.getByText('Carlos Pérez')).toBeInTheDocument();
     expect(screen.getByText(/^Vence el /)).toBeInTheDocument();
     await u.click(screen.getByRole('link', { name: 'Ver cliente' }));
@@ -108,7 +108,7 @@ describe('P7 · registrar pago', () => {
   it('"Registrar otro pago" vuelve al formulario vacío (buscador)', async () => {
     await abrir('Carlos');
     const u = userEvent.setup();
-    await u.click(await screen.findByRole('button', { name: 'Registrar $60.000' }));
+    await u.click(await screen.findByRole('button', { name: 'Registrar $85.000' }));
     await u.click(await screen.findByRole('button', { name: 'Registrar otro pago' }));
     expect(await screen.findByRole('searchbox', { name: 'Buscar membresía' })).toBeInTheDocument();
   });
@@ -122,7 +122,7 @@ describe('P7 · registrar pago', () => {
     const lista = await screen.findByRole('list', { name: 'Resultados' }, { timeout: 3000 });
     await u.click(within(lista).getByRole('button', { name: /Carlos Pérez/ }));
     expect(await screen.findByLabelText('Resumen')).toBeInTheDocument();
-    expect(await screen.findByRole('button', { name: 'Registrar $60.000' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Registrar $85.000' })).toBeInTheDocument();
     expect(screen.getByTestId('ubicacion').textContent).toMatch(/membresia=/);
   });
 
@@ -151,7 +151,7 @@ describe('P7 · registrar pago', () => {
   it('CA-18 pulsar dos veces "Registrar" crea un solo pago', async () => {
     await abrir('Carlos');
     const espia = vi.spyOn(e.api, 'registrarPago');
-    const boton = await screen.findByRole('button', { name: 'Registrar $60.000' });
+    const boton = await screen.findByRole('button', { name: 'Registrar $85.000' });
     await act(async () => { fireEvent.click(boton); fireEvent.click(boton); });
     await screen.findByRole('heading', { name: 'Pago registrado' });
     expect(espia).toHaveBeenCalledTimes(1);
@@ -161,7 +161,7 @@ describe('P7 · registrar pago', () => {
     await abrir('Carlos');
     const u = userEvent.setup();
     await u.click(await screen.findByRole('radio', { name: 'Transferencia' }));
-    await u.click(await screen.findByRole('button', { name: 'Registrar $60.000' }));
-    expect(await screen.findByText('$60.000 · Transferencia')).toBeInTheDocument();
+    await u.click(await screen.findByRole('button', { name: 'Registrar $85.000' }));
+    expect(await screen.findByText('$85.000 · Transferencia')).toBeInTheDocument();
   });
 });

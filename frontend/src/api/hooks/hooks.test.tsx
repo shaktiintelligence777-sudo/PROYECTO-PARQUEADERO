@@ -39,7 +39,7 @@ describe('hooks', () => {
     await waitFor(() => expect(dash.result.current.data?.pagos_hoy.cantidad).toBe(2));
     const membresias = await (await import('../index')).obtenerApi().listarMembresias({ estado: 'por_vencer' });
     const m = renderHook(() => useRegistrarPago(), { wrapper });
-    await act(async () => { await m.result.current.mutateAsync({ membresia_id: membresias.items[0]!.id, monto: 60000, metodo: 'efectivo', nota: 'ok' }); });
+    await act(async () => { await m.result.current.mutateAsync({ membresia_id: membresias.items[0]!.id, monto: 85000, metodo: 'efectivo', nota: 'ok' }); });
     await waitFor(() => expect(dash.result.current.data?.pagos_hoy.cantidad).toBe(3));
   });
 });
