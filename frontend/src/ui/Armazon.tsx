@@ -37,7 +37,7 @@ export function Armazon({ usuario, alCerrarSesion, alCambiarPassword, children }
   return (
     <div className="min-h-screen bg-asfalto-50 text-asfalto-900">
       {/* Escritorio: barra lateral de 240 px */}
-      <nav aria-label="Navegación lateral" className="fixed inset-y-0 left-0 hidden w-60 flex-col bg-asfalto-900 p-4 text-blanco md:flex">
+      <nav aria-label="Navegación lateral" className="fixed bottom-0 left-0 top-[var(--altura-banner,0px)] hidden w-60 flex-col bg-asfalto-900 p-4 text-blanco md:flex">
         <span className="mb-6 text-subtitulo">Parqueadero Las Bermúdez</span>
         <ul className="flex flex-1 flex-col gap-1">
           {visibles.map((d) => (
